@@ -43,13 +43,14 @@ async function getBoard(boardId: string, userId: string) {
           cards: {
             // orderBy: { order: "asc" }, // TODO: Adicionar campo 'order' ao modelo Card no banco
             include: {
-              client: {
-                select: {
-                  id: true,
-                  name: true,
-                  status: true,
-                },
-              },
+              // TODO: Descomentar quando modelo Client existir no banco de produção
+              // client: {
+              //   select: {
+              //     id: true,
+              //     name: true,
+              //     status: true,
+              //   },
+              // },
               checklists: {
                 include: {
                   items: true,
