@@ -66,7 +66,7 @@ export function DeleteBoardButton({ boardId, boardTitle }: { boardId: string; bo
         onClick={handleDelete}
         className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
       >
-        🗑️ Excluir Grupo
+        Excluir Grupo
       </Button>
     );
   }
@@ -87,7 +87,7 @@ export function DeleteBoardButton({ boardId, boardTitle }: { boardId: string; bo
         disabled={isDeleting}
         className="bg-red-600 hover:bg-red-700 text-white"
       >
-        {isDeleting ? "Excluindo..." : "⚠️ Confirmar Exclusão"}
+        {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
       </Button>
     </div>
   );

@@ -124,7 +124,7 @@ export default async function BoardPage({
             {canViewPerformance && (
               <Link href={`/board/${board.id}/performance`}>
                 <Button variant="outline" size="sm" className="bg-purple-50 hover:bg-purple-100 border-purple-200">
-                  📊 Performance
+                  Performance
                 </Button>
               </Link>
             )}

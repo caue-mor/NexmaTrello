@@ -138,7 +138,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
 
         {success && (
           <div className="mb-4 text-sm text-green-600 bg-green-50 p-3 rounded-md">
-            ✓ {success}
+            {success}
           </div>
         )}
 
@@ -177,7 +177,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                 </div>
                 {user.isMember ? (
                   <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
-                    ✓ Já é membro
+                    Já é membro
                   </Badge>
                 ) : (
                   <div className="flex gap-2">
@@ -189,7 +189,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                       className="text-xs"
                       title="Membro: Vê apenas sua própria performance"
                     >
-                      👤 Membro
+                      Membro
                     </Button>
                     <Button
                       size="sm"
@@ -198,7 +198,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                       className="text-xs bg-purple-600 hover:bg-purple-700"
                       title="Admin: Vê performance geral e de todos os membros"
                     >
-                      ⭐ Admin
+                      Admin
                     </Button>
                   </div>
                 )}

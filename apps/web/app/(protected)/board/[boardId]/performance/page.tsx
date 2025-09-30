@@ -237,7 +237,7 @@ export default async function BoardPerformancePage({
 
         {/* Performance Individual dos Membros */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
-          <h2 className="text-2xl font-bold mb-6">👤 Performance Individual</h2>
+          <h2 className="text-2xl font-bold mb-6">Performance Individual</h2>
 
           {memberPerformances.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
