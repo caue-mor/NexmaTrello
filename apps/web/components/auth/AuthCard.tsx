@@ -73,7 +73,19 @@ export function AuthCard({
         toast.success(mode === "login" ? "Login realizado!" : "Conta criada com sucesso!");
         window.location.href = "/dashboard";
       } else {
-        const errorMsg = data.error || "Erro no formulário";
+        // Tratar erros de validação Zod
+        let errorMsg = "Erro no formulário";
+
+        if (typeof data.error === "string") {
+          errorMsg = data.error;
+        } else if (data.error?.fieldErrors) {
+          // Pegar o primeiro erro de campo
+          const firstError = Object.values(data.error.fieldErrors)[0];
+          errorMsg = Array.isArray(firstError) ? firstError[0] : firstError;
+        } else if (data.error?.formErrors) {
+          errorMsg = data.error.formErrors[0] || "Erro no formulário";
+        }
+
         setError(errorMsg);
         toast.error(errorMsg);
       }
