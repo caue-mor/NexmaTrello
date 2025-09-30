@@ -157,11 +157,13 @@ export function ClientDetailsModal({
     fetch(`/api/clients/${clientId}/activities?limit=10`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
-        setActivities(data);
+        // Se a API retornar erro (501), usar array vazio
+        setActivities(Array.isArray(data) ? data : []);
         setLoadingActivities(false);
       })
       .catch((err) => {
         console.error(err);
+        setActivities([]); // Garantir array vazio em caso de erro
         setLoadingActivities(false);
       });
   }, [clientId]);
