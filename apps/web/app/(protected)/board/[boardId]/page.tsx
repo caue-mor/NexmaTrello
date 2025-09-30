@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CreateColumnDialog } from "@/components/boards/CreateColumnDialog";
 import { InviteMemberDialog } from "@/components/boards/InviteMemberDialog";
 import { DraggableBoard } from "@/components/boards/DraggableBoard";
+import { DeleteBoardButton } from "@/components/boards/DeleteBoardButton";
 
 async function getBoard(boardId: string, userId: string) {
   const board = await prisma.board.findFirst({
@@ -79,11 +80,11 @@ export default async function BoardPage({
     notFound();
   }
 
-  // Verificar se é owner ou admin para mostrar botão de performance
+  // Verificar se é owner (admin que criou) ou admin para mostrar botão de performance
   const isOwner = board.ownerId === user.id;
   const memberRole = board.members.find((m) => m.userId === user.id);
   const isAdmin = memberRole?.role === "ADMIN";
-  const canViewPerformance = isOwner || isAdmin;
+  const canViewPerformance = isOwner || isAdmin; // Owner = Admin que criou o grupo
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -113,6 +114,9 @@ export default async function BoardPage({
             )}
             <InviteMemberDialog boardId={board.id} />
             <CreateColumnDialog boardId={board.id} />
+            {isOwner && (
+              <DeleteBoardButton boardId={board.id} boardTitle={board.title} />
+            )}
           </div>
         </div>
       </div>

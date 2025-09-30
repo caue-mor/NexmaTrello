@@ -25,16 +25,11 @@ export default async function BoardPerformancePage({
   const resolvedParams = await Promise.resolve(params);
   const { boardId } = resolvedParams;
 
-  // Verificar permissão - apenas OWNER e ADMIN podem ver performance geral
-  const memberRole = await assertBoardRole(boardId, user.id, ["OWNER", "ADMIN"]);
+  // Verificar permissão - apenas ADMIN pode ver performance geral
+  // (OWNER é automaticamente tratado como ADMIN pelo assertBoardRole)
+  const memberRole = await assertBoardRole(boardId, user.id, ["ADMIN"]);
 
-  if (!memberRole) {
-    notFound();
-  }
-
-  const isOwnerOrAdmin = memberRole.role === "OWNER" || memberRole.role === "ADMIN";
-
-  if (!isOwnerOrAdmin) {
+  if (!memberRole || memberRole.role !== "ADMIN") {
     notFound();
   }
 

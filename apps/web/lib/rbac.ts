@@ -6,7 +6,7 @@ export async function assertBoardRole(
   userId: string,
   allowedRoles: Role[] = ["MEMBER", "ADMIN", "OWNER"]
 ) {
-  // First check if user is board owner or if board is org-wide
+  // First check if user is board owner
   const board = await prisma.board.findUnique({
     where: { id: boardId },
     select: { ownerId: true, isOrgWide: true },
@@ -16,11 +16,12 @@ export async function assertBoardRole(
     throw new Error("Board não encontrado");
   }
 
-  // Owner always has full access to their board
+  // Owner é tratado como ADMIN (quem cria o grupo)
   const isOwner = board.ownerId === userId;
 
   if (isOwner) {
-    return { role: "OWNER" as Role, boardId, userId };
+    // Owner sempre tem acesso como ADMIN
+    return { role: "ADMIN" as Role, boardId, userId };
   }
 
   // Org-wide boards allow MEMBER access to all users

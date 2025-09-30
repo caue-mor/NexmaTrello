@@ -28,11 +28,11 @@ export async function POST(req: Request) {
     }
 
     // For org-wide boards, any authenticated user can invite
-    // For private boards, only OWNER and ADMIN can invite
+    // For private boards, only ADMIN can invite (OWNER is treated as ADMIN)
     if (!board.isOrgWide) {
-      const memberRole = await assertBoardRole(boardId, user.id, ["OWNER", "ADMIN"]);
-      if (!memberRole) {
-        return NextResponse.json({ error: "Sem permissão para convidar" }, { status: 403 });
+      const memberRole = await assertBoardRole(boardId, user.id, ["ADMIN"]);
+      if (!memberRole || memberRole.role !== "ADMIN") {
+        return NextResponse.json({ error: "Apenas administradores podem convidar" }, { status: 403 });
       }
     }
 

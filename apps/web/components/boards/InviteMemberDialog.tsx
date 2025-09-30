@@ -166,16 +166,18 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                       onClick={() => handleInvite(user.email, "MEMBER")}
                       disabled={loading}
                       className="text-xs"
+                      title="Membro: Vê apenas sua própria performance"
                     >
-                      Membro
+                      👤 Membro
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => handleInvite(user.email, "ADMIN")}
                       disabled={loading}
                       className="text-xs bg-purple-600 hover:bg-purple-700"
+                      title="Admin: Vê performance geral e de todos os membros"
                     >
-                      Admin
+                      ⭐ Admin
                     </Button>
                   </div>
                 )}
