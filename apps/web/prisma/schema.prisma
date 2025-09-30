@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum NotificationType {
+  INVITE
+  ALERT
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  passwordHash  String
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  sessions      Session[]
+  boardsOwned   Board[]        @relation("BoardsOwned")
+  memberships   BoardMember[]
+  notifications Notification[]
+  cardsCreated  Card[]         @relation("CardCreator")
+  cardAssignees CardAssignee[]
+  invitesSent   Invite[]       @relation("InvitedBy")
+  invitesAccepted Invite[]     @relation("AcceptedBy")
+  comments      Comment[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Board {
+  id        String        @id @default(cuid())
+  title     String
+  isOrgWide Boolean       @default(false)
+  ownerId   String
+  owner     User          @relation("BoardsOwned", fields: [ownerId], references: [id])
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  members   BoardMember[]
+  columns   Column[]
+  cards     Card[]
+  invites   Invite[]
+}
+
+model BoardMember {
+  id       String   @id @default(cuid())
+  boardId  String
+  userId   String
+  role     Role     @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
+}
+
+model Column {
+  id      String @id @default(cuid())
+  boardId String
+  title   String
+  order   Int
+
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards Card[]
+
+  @@index([boardId])
+}
+
+model Card {
+  id          String    @id @default(cuid())
+  boardId     String
+  columnId    String
+  title       String
+  description String?
+  urgency     Urgency   @default(MEDIUM)
+  createdById String
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  board      Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  column     Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdBy  User            @relation("CardCreator", fields: [createdById], references: [id])
+  checklists Checklist[]
+  assignees  CardAssignee[]
+  comments   Comment[]
+  notifications Notification[]
+
+  @@index([boardId])
+  @@index([columnId])
+  @@index([createdById])
+}
+
+model Checklist {
+  id     String @id @default(cuid())
+  cardId String
+  title  String
+
+  card  Card            @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  items ChecklistItem[]
+
+  @@index([cardId])
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  checklistId String
+  content     String
+  done        Boolean   @default(false)
+  doneAt      DateTime?
+
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId])
+}
+
+model CardAssignee {
+  cardId     String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, userId])
+  @@index([cardId])
+  @@index([userId])
+}
+
+model Invite {
+  id           String       @id @default(cuid())
+  boardId      String
+  email        String
+  token        String       @unique
+  status       InviteStatus @default(PENDING)
+  invitedById  String
+  expiresAt    DateTime
+  createdAt    DateTime     @default(now())
+  acceptedById String?
+
+  board      Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  invitedBy  User   @relation("InvitedBy", fields: [invitedById], references: [id])
+  acceptedBy User?  @relation("AcceptedBy", fields: [acceptedById], references: [id])
+
+  @@index([boardId])
+  @@index([email])
+  @@index([token])
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  userId         String
+  type           NotificationType
+  title          String
+  message        String
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  relatedCardId  String?
+  relatedBoardId String?
+
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedCard Card? @relation(fields: [relatedCardId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  cardId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+  @@index([userId])
+}
