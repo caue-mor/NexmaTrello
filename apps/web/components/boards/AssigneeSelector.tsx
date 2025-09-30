@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
 interface User {
@@ -176,9 +177,11 @@ export function AssigneeSelector({
                 className="flex items-center justify-between p-2 rounded-lg bg-neutral-50"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                    {(assignee.name || assignee.email)[0].toUpperCase()}
-                  </div>
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-medium">
+                      {(assignee.name || assignee.email)[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <p className="text-sm font-medium">
                       {assignee.name || assignee.email}
@@ -232,9 +235,11 @@ export function AssigneeSelector({
                     disabled={loading}
                     className="w-full flex items-center gap-3 p-3 hover:bg-neutral-50 transition text-left border-b border-neutral-100 last:border-b-0"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                      {(user.name || user.email)[0].toUpperCase()}
-                    </div>
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-medium">
+                        {(user.name || user.email)[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {user.name || user.email}

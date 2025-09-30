@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface User {
   id: string;
@@ -92,24 +102,21 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!isOpen) {
-    return (
-      <Button variant="outline" size="sm" onClick={() => setIsOpen(true)}>
-        Convidar
-      </Button>
-    );
-  }
-
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={() => setIsOpen(false)}
-    >
-      <div
-        className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-2xl font-semibold mb-4">Convidar Membro</h2>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          Convidar
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Convidar Membro</DialogTitle>
+          <DialogDescription>
+            Adicione membros ao seu board por nome ou email
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Search bar */}
         <div className="mb-4">
@@ -154,9 +161,11 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                 className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
-                    {(user.name || user.email)[0].toUpperCase()}
-                  </div>
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
+                      {(user.name || user.email)[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <p className="font-medium text-sm">
                       {user.name || user.email}
@@ -167,9 +176,9 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                   </div>
                 </div>
                 {user.isMember ? (
-                  <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full font-medium">
+                  <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
                     ✓ Já é membro
-                  </span>
+                  </Badge>
                 ) : (
                   <div className="flex gap-2">
                     <Button
@@ -198,15 +207,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
           )}
         </div>
 
-        {/* Close button */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setIsOpen(false)}
-        >
-          Fechar
-        </Button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
