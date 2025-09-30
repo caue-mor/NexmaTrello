@@ -43,7 +43,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
     }
   }
 
-  async function handleInvite(userEmail: string) {
+  async function handleInvite(userEmail: string, role: "ADMIN" | "MEMBER") {
     setLoading(true);
     setError("");
     setSuccess("");
@@ -53,13 +53,14 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ boardId, email: userEmail }),
+        body: JSON.stringify({ boardId, email: userEmail, role }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess(`Convite enviado para ${userEmail}!`);
+        const roleText = role === "ADMIN" ? "Admin" : "Membro";
+        setSuccess(`Convite enviado para ${userEmail} como ${roleText}!`);
         // Remover usuário da lista
         setUsers(users.filter((u) => u.email !== userEmail));
         setTimeout(() => setSuccess(""), 3000);
@@ -158,13 +159,25 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
                     ✓ Já é membro
                   </span>
                 ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => handleInvite(user.email)}
-                    disabled={loading}
-                  >
-                    Convidar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleInvite(user.email, "MEMBER")}
+                      disabled={loading}
+                      className="text-xs"
+                    >
+                      Membro
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleInvite(user.email, "ADMIN")}
+                      disabled={loading}
+                      className="text-xs bg-purple-600 hover:bg-purple-700"
+                    >
+                      Admin
+                    </Button>
+                  </div>
                 )}
               </div>
             ))

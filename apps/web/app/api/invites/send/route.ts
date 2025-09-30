@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { boardId, email } = inviteSendSchema.parse(body);
+    const { boardId, email, role } = inviteSendSchema.parse(body);
 
     // Check if user has permission (any member can invite in org-wide boards, otherwise OWNER/ADMIN)
     const board = await prisma.board.findUnique({
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
       data: {
         boardId,
         email,
+        role,
         token,
         invitedById: user.id,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days

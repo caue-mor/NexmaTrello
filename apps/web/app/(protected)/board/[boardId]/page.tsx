@@ -79,6 +79,12 @@ export default async function BoardPage({
     notFound();
   }
 
+  // Verificar se é owner ou admin para mostrar botão de performance
+  const isOwner = board.ownerId === user.id;
+  const memberRole = board.members.find((m) => m.userId === user.id);
+  const isAdmin = memberRole?.role === "ADMIN";
+  const canViewPerformance = isOwner || isAdmin;
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}
@@ -98,6 +104,13 @@ export default async function BoardPage({
             </div>
           </div>
           <div className="flex gap-2">
+            {canViewPerformance && (
+              <Link href={`/board/${board.id}/performance`}>
+                <Button variant="outline" size="sm" className="bg-purple-50 hover:bg-purple-100 border-purple-200">
+                  📊 Performance
+                </Button>
+              </Link>
+            )}
             <InviteMemberDialog boardId={board.id} />
             <CreateColumnDialog boardId={board.id} />
           </div>

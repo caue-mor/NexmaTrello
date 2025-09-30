@@ -70,6 +70,7 @@ export const checklistItemToggleSchema = z.object({
 export const inviteSendSchema = z.object({
   boardId: z.string(),
   email: z.string().email("E-mail inválido"),
+  role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
 });
 
 export const inviteAcceptSchema = z.object({

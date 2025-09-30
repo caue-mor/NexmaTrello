@@ -172,6 +172,7 @@ model Invite {
   email        String
   token        String       @unique
   status       InviteStatus @default(PENDING)
+  role         Role         @default(MEMBER)
   invitedById  String
   expiresAt    DateTime
   createdAt    DateTime     @default(now())

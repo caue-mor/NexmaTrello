@@ -24,6 +24,15 @@ export async function POST(
     const body = await req.json();
     const data = cardCreateSchema.parse(body);
 
+    // Validar e processar dueAt
+    let dueAtDate: Date | null = null;
+    if (data.dueAt && data.dueAt.trim()) {
+      const parsed = new Date(data.dueAt);
+      if (!isNaN(parsed.getTime())) {
+        dueAtDate = parsed;
+      }
+    }
+
     const card = await prisma.card.create({
       data: {
         boardId,
@@ -31,7 +40,7 @@ export async function POST(
         title: data.title,
         description: data.description,
         urgency: data.urgency || "MEDIUM",
-        dueAt: data.dueAt && data.dueAt.trim() ? new Date(data.dueAt) : null,
+        dueAt: dueAtDate,
         createdById: user.id,
       },
       include: {

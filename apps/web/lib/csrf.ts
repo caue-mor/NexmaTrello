@@ -22,7 +22,10 @@ export async function assertCsrf(formToken?: string) {
   const cookieStore = await cookies();
   const cookieToken = cookieStore.get(CSRF_COOKIE)?.value;
 
-  console.log("CSRF validation:", { cookieToken, formToken, match: cookieToken === formToken });
+  // Log apenas em desenvolvimento
+  if (process.env.NODE_ENV === "development") {
+    console.log("CSRF validation:", { cookieToken: cookieToken?.substring(0, 10), formToken: formToken?.substring(0, 10), match: cookieToken === formToken });
+  }
 
   if (!cookieToken || !formToken || cookieToken !== formToken) {
     throw new Error("CSRF token inválido");

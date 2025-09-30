@@ -16,13 +16,10 @@ export async function assertBoardRole(
     throw new Error("Board não encontrado");
   }
 
-  // Owner always has access - check if OWNER is in allowedRoles
+  // Owner always has full access to their board
   const isOwner = board.ownerId === userId;
 
   if (isOwner) {
-    if (!allowedRoles.includes("OWNER")) {
-      throw new Error("Acesso negado");
-    }
     return { role: "OWNER" as Role, boardId, userId };
   }
 

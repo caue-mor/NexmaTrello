@@ -46,12 +46,12 @@ export async function POST(req: NextRequest) {
 
     // Accept invite in a transaction
     await prisma.$transaction([
-      // Create board membership
+      // Create board membership with role from invite
       prisma.boardMember.create({
         data: {
           boardId: data.boardId,
           userId: user.id,
-          role: "MEMBER",
+          role: invite.role,
         },
       }),
       // Update invite status
