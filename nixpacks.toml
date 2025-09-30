@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+dependsOn = ["setup"]
+cmds = [
+  "cd apps/web",
+  "npm install"
+]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = [
+  "cd apps/web",
+  "npx prisma generate",
+  "npm run build"
+]
+
+[start]
+cmd = "cd apps/web && npm start"
