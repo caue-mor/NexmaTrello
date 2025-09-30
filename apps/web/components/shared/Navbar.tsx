@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+// TODO: Habilitar quando modelo Label, Attachment e campo 'order' existirem no banco
+// import { GlobalSearch } from "@/components/search/GlobalSearch";
 
 interface NavbarProps {
   user: {
@@ -46,17 +47,20 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
 
   return (
     <nav className="bg-white border-b border-neutral-200 px-6 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold">
             N
           </div>
           <span className="text-xl font-bold">NexList</span>
         </Link>
 
+        {/* Global Search - TODO: Habilitar quando modelo Label, Attachment e campo 'order' existirem */}
+        {/* <GlobalSearch /> */}
+
         {/* Right side */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-shrink-0">
           {/* Inbox link */}
           <Link
             href="/inbox"
@@ -134,21 +138,28 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
                       className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition"
                       onClick={() => setShowDropdown(false)}
                     >
-                      🏠 Dashboard
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/clientes"
+                      className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      Clientes
                     </Link>
                     <Link
                       href="/performance"
                       className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition"
                       onClick={() => setShowDropdown(false)}
                     >
-                      📊 Minha Performance
+                      Minha Performance
                     </Link>
                     <Link
                       href="/inbox"
                       className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition"
                       onClick={() => setShowDropdown(false)}
                     >
-                      📬 Inbox
+                      Inbox
                       {unreadCount > 0 && (
                         <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
                           {unreadCount}
@@ -163,7 +174,7 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
                       disabled={loading}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition disabled:opacity-50"
                     >
-                      {loading ? "Saindo..." : "🚪 Sair"}
+                      {loading ? "Saindo..." : "Sair"}
                     </button>
                   </div>
                 </div>

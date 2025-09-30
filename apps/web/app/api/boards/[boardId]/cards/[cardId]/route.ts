@@ -43,6 +43,12 @@ export async function GET(
             },
           },
         },
+        // TODO: Descomentar quando modelo Label existir
+        // labels: {
+        //   include: {
+        //     label: true,
+        //   },
+        // },
         comments: {
           include: {
             user: {
@@ -131,6 +137,12 @@ export async function PUT(
             },
           },
         },
+        // TODO: Descomentar quando modelo Label existir
+        // labels: {
+        //   include: {
+        //     label: true,
+        //   },
+        // },
       },
     });
 

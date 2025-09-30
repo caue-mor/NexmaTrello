@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CardPerformance } from "./CardPerformance";
 import { AssigneeSelector } from "./AssigneeSelector";
+// import { LabelsManager } from "./LabelsManager"; // TODO: Habilitar quando modelo Label existir
 import { toast } from "sonner";
 
 interface ChecklistItem {
@@ -31,6 +32,16 @@ interface Comment {
   };
 }
 
+interface Label {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface CardLabel {
+  label: Label;
+}
+
 interface Card {
   id: string;
   title: string;
@@ -41,6 +52,7 @@ interface Card {
   createdAt: string;
   checklists: Checklist[];
   comments?: Comment[];
+  labels?: CardLabel[];
   assignees?: {
     user: {
       id: string;
@@ -285,6 +297,16 @@ export function CardModal({
             onUpdate={loadCard}
           />
         </div>
+
+        {/* Labels - TODO: Habilitar quando modelo Label existir no banco */}
+        {/* <div className="mb-6 border border-neutral-200 rounded-xl p-4">
+          <LabelsManager
+            cardId={cardId}
+            boardId={boardId}
+            currentLabels={card.labels || []}
+            onUpdate={loadCard}
+          />
+        </div> */}
 
         {/* Checklists */}
         <div className="space-y-6 mb-6">

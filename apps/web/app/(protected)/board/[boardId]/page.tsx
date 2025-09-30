@@ -41,7 +41,15 @@ async function getBoard(boardId: string, userId: string) {
         orderBy: { order: "asc" },
         include: {
           cards: {
+            // orderBy: { order: "asc" }, // TODO: Adicionar campo 'order' ao modelo Card no banco
             include: {
+              client: {
+                select: {
+                  id: true,
+                  name: true,
+                  status: true,
+                },
+              },
               checklists: {
                 include: {
                   items: true,

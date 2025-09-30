@@ -5,12 +5,28 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 import { CreateCardDialog } from "./CreateCardDialog";
 import { CardModal } from "./CardModal";
 
+interface Label {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface CardLabel {
+  label: Label;
+}
+
 interface Card {
   id: string;
   title: string;
   description: string | null;
   urgency: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   dueAt: Date | string | null;
+  client?: {
+    id: string;
+    name: string;
+    status: string;
+  } | null;
+  labels?: CardLabel[];
   checklists: {
     id: string;
     title: string;
@@ -20,13 +36,31 @@ interface Card {
       done: boolean;
     }[];
   }[];
-  assignees: any[];
+  assignees: {
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+  }[];
 }
 
 interface Column {
   id: string;
   title: string;
   cards: Card[];
+}
+
+function getDueDateStatus(dueAt: Date | string | null) {
+  if (!dueAt) return null;
+  const due = new Date(dueAt);
+  const now = new Date();
+  const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return 'overdue';        // Vencido
+  if (diffDays === 0) return 'due-today';    // Vence hoje
+  if (diffDays <= 2) return 'due-soon';      // Vence em 2 dias
+  return 'ok';
 }
 
 export function DraggableBoard({
@@ -176,30 +210,113 @@ export function DraggableBoard({
                                   </p>
                                 )}
 
+                                {/* Cliente */}
+                                {card.client && (
+                                  <div className="mb-2">
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-medium">
+                                      🏢 {card.client.name}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Labels/Tags */}
+                                {card.labels && card.labels.length > 0 && (
+                                  <div className="mb-2 flex flex-wrap gap-1">
+                                    {card.labels.map(({ label }) => (
+                                      <span
+                                        key={label.id}
+                                        className="inline-flex items-center justify-center h-6 px-2 rounded text-white text-xs font-medium"
+                                        style={{ backgroundColor: label.color }}
+                                        title={label.name}
+                                      >
+                                        {label.name.length > 12
+                                          ? label.name.substring(0, 12) + '...'
+                                          : label.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Pessoas Atribuídas */}
+                                {card.assignees.length > 0 && (
+                                  <div className="mb-2 flex flex-wrap gap-1">
+                                    {card.assignees.map((assignee) => (
+                                      <span
+                                        key={assignee.user.id}
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs"
+                                        title={assignee.user.email}
+                                      >
+                                        👤 {assignee.user.name || assignee.user.email.split('@')[0]}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
                                 {/* Card Metadata */}
                                 <div className="flex items-center gap-2 text-xs text-neutral-500">
-                                  {card.urgency !== "MEDIUM" && (
-                                    <span
-                                      className={`px-2 py-1 rounded ${
-                                        card.urgency === "CRITICAL"
-                                          ? "bg-red-100 text-red-700"
-                                          : card.urgency === "HIGH"
-                                          ? "bg-orange-100 text-orange-700"
-                                          : "bg-blue-100 text-blue-700"
-                                      }`}
-                                    >
-                                      {card.urgency}
-                                    </span>
-                                  )}
+                                  {card.urgency !== "MEDIUM" && (() => {
+                                    const urgencyLabels = {
+                                      LOW: "Baixa",
+                                      MEDIUM: "Média",
+                                      HIGH: "Alta",
+                                      CRITICAL: "Crítica"
+                                    };
+                                    return (
+                                      <span
+                                        className={`px-2 py-1 rounded ${
+                                          card.urgency === "CRITICAL"
+                                            ? "bg-red-100 text-red-700"
+                                            : card.urgency === "HIGH"
+                                            ? "bg-orange-100 text-orange-700"
+                                            : "bg-blue-100 text-blue-700"
+                                        }`}
+                                      >
+                                        {urgencyLabels[card.urgency]}
+                                      </span>
+                                    );
+                                  })()}
+
+                                  {/* Due Date Badge */}
+                                  {card.dueAt && (() => {
+                                    const status = getDueDateStatus(card.dueAt);
+                                    const dueDate = new Date(card.dueAt);
+                                    const formattedDate = new Intl.DateTimeFormat('pt-BR', {
+                                      day: '2-digit',
+                                      month: '2-digit'
+                                    }).format(dueDate);
+
+                                    if (status === 'overdue') {
+                                      return (
+                                        <span className="px-2 py-1 rounded bg-red-500 text-white font-medium">
+                                          ⏰ ATRASADO ({formattedDate})
+                                        </span>
+                                      );
+                                    }
+                                    if (status === 'due-today') {
+                                      return (
+                                        <span className="px-2 py-1 rounded bg-orange-500 text-white font-medium">
+                                          📅 HOJE ({formattedDate})
+                                        </span>
+                                      );
+                                    }
+                                    if (status === 'due-soon') {
+                                      return (
+                                        <span className="px-2 py-1 rounded bg-yellow-500 text-white font-medium">
+                                          ⏳ 2 dias ({formattedDate})
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span className="px-2 py-1 rounded bg-gray-100 text-gray-700">
+                                        📅 {formattedDate}
+                                      </span>
+                                    );
+                                  })()}
 
                                   {totalItems > 0 && (
                                     <span className="flex items-center gap-1">
                                       ✓ {doneItems}/{totalItems}
                                     </span>
-                                  )}
-
-                                  {card.assignees.length > 0 && (
-                                    <span>👤 {card.assignees.length}</span>
                                   )}
                                 </div>
 

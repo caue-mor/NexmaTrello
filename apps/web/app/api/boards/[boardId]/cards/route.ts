@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { cardCreateSchema } from "@/lib/validators";
 import { assertBoardRole } from "@/lib/rbac";
 import { notifyCardCreated } from "@/lib/pusher";
+import { logCardCreated } from "@/lib/activity";
 import { z } from "zod";
 
 export async function POST(
@@ -33,6 +34,14 @@ export async function POST(
       }
     }
 
+    // TODO: Adicionar cálculo de order quando o campo existir no banco
+    // const maxOrderCard = await prisma.card.findFirst({
+    //   where: { columnId: data.columnId },
+    //   orderBy: { order: 'desc' },
+    //   select: { order: true },
+    // });
+    // const nextOrder = (maxOrderCard?.order ?? -1) + 1;
+
     const card = await prisma.card.create({
       data: {
         boardId,
@@ -41,7 +50,9 @@ export async function POST(
         description: data.description,
         urgency: data.urgency || "MEDIUM",
         dueAt: dueAtDate,
+        clientId: data.clientId,
         createdById: user.id,
+        // order: nextOrder, // TODO: Descomentar quando campo existir
       },
       include: {
         checklists: {
@@ -65,6 +76,9 @@ export async function POST(
 
     // Trigger real-time update
     await notifyCardCreated(boardId, card);
+
+    // TODO: Descomentar quando modelo Activity existir no banco
+    // await logCardCreated(card.id, user.id);
 
     // Notificar TODOS os membros do board (exceto quem criou)
     const boardMembers = await prisma.boardMember.findMany({

@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+interface Client {
+  id: string;
+  name: string;
+  status: string;
+}
 
 export function CreateCardDialog({
   boardId,
@@ -16,8 +22,19 @@ export function CreateCardDialog({
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL">("MEDIUM");
   const [dueAt, setDueAt] = useState("");
+  const [clientId, setClientId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/clients", { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => setClients(data))
+        .catch((err) => console.error("Erro ao buscar clientes:", err));
+    }
+  }, [isOpen]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +52,7 @@ export function CreateCardDialog({
           description: description || undefined,
           urgency,
           dueAt: dueAt || undefined,
+          clientId: clientId || undefined,
         }),
       });
 
@@ -110,26 +128,34 @@ export function CreateCardDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium">Urgência</label>
             <div className="grid grid-cols-4 gap-2">
-              {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  onClick={() => setUrgency(level)}
-                  className={`px-3 py-2 text-sm rounded-lg border-2 transition ${
-                    urgency === level
-                      ? level === "CRITICAL"
-                        ? "border-red-500 bg-red-50 text-red-700"
-                        : level === "HIGH"
-                        ? "border-orange-500 bg-orange-50 text-orange-700"
-                        : level === "MEDIUM"
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-green-500 bg-green-50 text-green-700"
-                      : "border-neutral-200 bg-white hover:border-neutral-300"
-                  }`}
-                >
-                  {level}
-                </button>
-              ))}
+              {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((level) => {
+                const labels = {
+                  LOW: "Baixa",
+                  MEDIUM: "Média",
+                  HIGH: "Alta",
+                  CRITICAL: "Crítica"
+                };
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setUrgency(level)}
+                    className={`px-3 py-2 text-sm rounded-lg border-2 transition ${
+                      urgency === level
+                        ? level === "CRITICAL"
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : level === "HIGH"
+                          ? "border-orange-500 bg-orange-50 text-orange-700"
+                          : level === "MEDIUM"
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-green-500 bg-green-50 text-green-700"
+                        : "border-neutral-200 bg-white hover:border-neutral-300"
+                    }`}
+                  >
+                    {labels[level]}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -143,6 +169,25 @@ export function CreateCardDialog({
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="clientId">
+              Cliente (opcional)
+            </label>
+            <select
+              id="clientId"
+              className="flex w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            >
+              <option value="">Nenhum cliente</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name} - {client.status}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (

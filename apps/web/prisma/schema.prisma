@@ -20,6 +20,13 @@ enum Urgency {
   CRITICAL
 }
 
+enum ClientStatus {
+  NORMAL
+  NEUTRO
+  URGENTE
+  EMERGENCIA
+}
+
 enum InviteStatus {
   PENDING
   ACCEPTED
@@ -32,6 +39,25 @@ enum NotificationType {
   ALERT
 }
 
+enum ActivityType {
+  CARD_CREATED
+  CARD_UPDATED
+  CARD_MOVED
+  CARD_DELETED
+  CARD_ASSIGNED
+  CARD_UNASSIGNED
+  CHECKLIST_CREATED
+  CHECKLIST_ITEM_COMPLETED
+  CHECKLIST_ITEM_UNCOMPLETED
+  COMMENT_ADDED
+  ATTACHMENT_ADDED
+  ATTACHMENT_DELETED
+  LABEL_ADDED
+  LABEL_REMOVED
+  CLIENT_STATUS_CHANGED
+  DUE_DATE_CHANGED
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -41,15 +67,17 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  sessions      Session[]
-  boardsOwned   Board[]        @relation("BoardsOwned")
-  memberships   BoardMember[]
-  notifications Notification[]
-  cardsCreated  Card[]         @relation("CardCreator")
-  cardAssignees CardAssignee[]
-  invitesSent   Invite[]       @relation("InvitedBy")
-  invitesAccepted Invite[]     @relation("AcceptedBy")
-  comments      Comment[]
+  sessions        Session[]
+  boardsOwned     Board[]        @relation("BoardsOwned")
+  memberships     BoardMember[]
+  notifications   Notification[]
+  cardsCreated    Card[]         @relation("CardCreator")
+  cardAssignees   CardAssignee[]
+  invitesSent     Invite[]       @relation("InvitedBy")
+  invitesAccepted Invite[]       @relation("AcceptedBy")
+  comments        Comment[]
+  activities      Activity[]
+  attachments     Attachment[]
 }
 
 model Session {
@@ -71,10 +99,13 @@ model Board {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  members   BoardMember[]
-  columns   Column[]
-  cards     Card[]
-  invites   Invite[]
+  members            BoardMember[]
+  columns            Column[]
+  cards              Card[]
+  invites            Invite[]
+  labels             Label[]
+  checklistTemplates ChecklistTemplate[]
+  activities         Activity[]
 }
 
 model BoardMember {
@@ -111,23 +142,31 @@ model Card {
   title       String
   description String?
   urgency     Urgency   @default(MEDIUM)
+  order       Int       @default(0)
   createdById String
+  clientId    String?
   dueAt       DateTime?
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  board      Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  column     Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  createdBy  User            @relation("CardCreator", fields: [createdById], references: [id])
-  checklists Checklist[]
-  assignees  CardAssignee[]
-  comments   Comment[]
+  board         Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  column        Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdBy     User            @relation("CardCreator", fields: [createdById], references: [id])
+  client        Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  checklists    Checklist[]
+  assignees     CardAssignee[]
+  comments      Comment[]
   notifications Notification[]
+  labels        CardLabel[]
+  attachments   Attachment[]
+  activities    Activity[]
 
   @@index([boardId])
-  @@index([columnId])
+  @@index([columnId, order])
   @@index([createdById])
+  @@index([clientId])
+  @@index([dueAt])
 }
 
 model Checklist {
@@ -218,4 +257,124 @@ model Comment {
 
   @@index([cardId])
   @@index([userId])
+}
+
+model Client {
+  id          String       @id @default(cuid())
+  name        String
+  status      ClientStatus @default(NORMAL)
+  lead        Int          @default(0)
+  phone       String?
+  email       String?
+  document    String?      // CNPJ/CPF
+  sector      String?
+  region      String?
+  notes       String?
+  firstContact DateTime?   @default(now())
+  lastContact  DateTime?   @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  cards      Card[]
+  activities Activity[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+}
+
+// ============================================
+// LABELS (TAGS) SYSTEM
+// ============================================
+
+model Label {
+  id      String @id @default(cuid())
+  boardId String
+  name    String
+  color   String // hex color code
+  order   Int    @default(0)
+
+  board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards CardLabel[]
+
+  @@unique([boardId, name])
+  @@index([boardId])
+}
+
+model CardLabel {
+  cardId  String
+  labelId String
+
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
+  @@index([cardId])
+  @@index([labelId])
+}
+
+// ============================================
+// ATTACHMENTS SYSTEM
+// ============================================
+
+model Attachment {
+  id         String   @id @default(cuid())
+  cardId     String
+  fileName   String
+  fileUrl    String
+  fileSize   Int      // bytes
+  mimeType   String
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [uploadedBy], references: [id])
+
+  @@index([cardId])
+  @@index([uploadedBy])
+}
+
+// ============================================
+// CHECKLIST TEMPLATES
+// ============================================
+
+model ChecklistTemplate {
+  id          String   @id @default(cuid())
+  boardId     String
+  name        String
+  description String?
+  items       Json     // Array of strings: ["Step 1", "Step 2", ...]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
+
+// ============================================
+// ACTIVITY LOG (AUDIT TRAIL)
+// ============================================
+
+model Activity {
+  id        String       @id @default(cuid())
+  boardId   String
+  cardId    String?
+  clientId  String?
+  userId    String
+  type      ActivityType
+  metadata  Json?        // Flexible data: old/new values, affected fields, etc
+  createdAt DateTime     @default(now())
+
+  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card   Card?   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id])
+
+  @@index([boardId])
+  @@index([cardId])
+  @@index([clientId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
 }
