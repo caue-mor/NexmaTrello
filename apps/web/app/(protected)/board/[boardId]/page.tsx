@@ -65,6 +65,22 @@ async function getBoard(boardId: string, userId: string) {
     },
   });
 
+  if (board) {
+    // Reordenar colunas: "Finalizado" sempre por último
+    board.columns = board.columns.sort((a, b) => {
+      const aIsFinal = a.title.toLowerCase().includes("finalizado") ||
+                       a.title.toLowerCase().includes("concluído") ||
+                       a.title.toLowerCase().includes("completo");
+      const bIsFinal = b.title.toLowerCase().includes("finalizado") ||
+                       b.title.toLowerCase().includes("concluído") ||
+                       b.title.toLowerCase().includes("completo");
+
+      if (aIsFinal && !bIsFinal) return 1;  // a vai para o final
+      if (!aIsFinal && bIsFinal) return -1; // b vai para o final
+      return a.order - b.order;              // mantém ordem original
+    });
+  }
+
   return board;
 }
 

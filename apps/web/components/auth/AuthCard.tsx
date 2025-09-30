@@ -21,15 +21,27 @@ export function AuthCard({
   const [csrf, setCsrf] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+
     // Fetch CSRF token on mount (this sets the cookie)
     fetch("/api/csrf", {
       credentials: 'include'
     })
       .then((res) => res.json())
       .then((data) => {
-        setCsrf(data.csrf);
+        if (mounted) {
+          setCsrf(data.csrf);
+        }
       })
-      .catch(() => setError("Erro ao carregar"));
+      .catch(() => {
+        if (mounted) {
+          setError("Erro ao carregar");
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const endpoint =
@@ -41,11 +53,18 @@ export function AuthCard({
     setError("");
 
     try {
+      // Refetch CSRF token before submission to ensure sync
+      const csrfRes = await fetch("/api/csrf", {
+        credentials: 'include'
+      });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch(endpoint, {
         method: "POST",
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name, csrf }),
+        body: JSON.stringify({ email, password, name, csrf: freshCsrf }),
       });
 
       const data = await res.json();

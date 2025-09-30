@@ -15,13 +15,17 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    console.log("Invite send request body:", body);
     const { boardId, email, role } = inviteSendSchema.parse(body);
+    console.log("Validated invite data:", { boardId, email, role });
 
     // Check if user has permission (any member can invite in org-wide boards, otherwise OWNER/ADMIN)
     const board = await prisma.board.findUnique({
       where: { id: boardId },
       select: { isOrgWide: true, ownerId: true },
     });
+
+    console.log("Board found:", board);
 
     if (!board) {
       return NextResponse.json({ error: "Board não encontrado" }, { status: 404 });
@@ -30,13 +34,31 @@ export async function POST(req: Request) {
     // For org-wide boards, any authenticated user can invite
     // For private boards, only ADMIN can invite (OWNER is treated as ADMIN)
     if (!board.isOrgWide) {
+      console.log("Checking board role for user:", user.id);
       const memberRole = await assertBoardRole(boardId, user.id, ["ADMIN"]);
+      console.log("Member role result:", memberRole);
       if (!memberRole || memberRole.role !== "ADMIN") {
         return NextResponse.json({ error: "Apenas administradores podem convidar" }, { status: 403 });
       }
     }
 
-    // Check if invite already exists
+    // Check if user is already a member
+    const existingMember = await prisma.boardMember.findFirst({
+      where: {
+        boardId,
+        user: { email },
+      },
+    });
+
+    if (existingMember) {
+      return NextResponse.json(
+        { error: "Usuário já é membro deste grupo" },
+        { status: 409 }
+      );
+    }
+
+    // Check if invite already exists (only PENDING status)
+    console.log("Checking for existing invite...");
     const existingInvite = await prisma.invite.findFirst({
       where: {
         boardId,
@@ -48,6 +70,8 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log("Existing invite:", existingInvite);
+
     if (existingInvite) {
       return NextResponse.json(
         { error: "Convite já enviado para este e-mail" },
@@ -56,6 +80,7 @@ export async function POST(req: Request) {
     }
 
     // Create invite
+    console.log("Creating new invite with role:", role);
     const token = crypto.randomBytes(24).toString("hex");
     const invite = await prisma.invite.create({
       data: {
@@ -67,6 +92,8 @@ export async function POST(req: Request) {
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
       },
     });
+
+    console.log("Invite created successfully:", invite.id);
 
     // Create notification for target user if they exist
     const targetUser = await prisma.user.findUnique({

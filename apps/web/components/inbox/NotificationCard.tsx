@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Notification {
   id: string;
@@ -49,12 +50,24 @@ export function NotificationCard({ notification }: { notification: Notification 
         body: JSON.stringify({ boardId: notification.relatedBoardId }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        await markAsRead();
-        router.refresh();
+        if (action === "accept") {
+          toast.success("Convite aceito! Você agora faz parte do grupo.");
+          // Redirecionar para o board
+          router.push(`/board/${notification.relatedBoardId}`);
+        } else {
+          toast.success("Convite recusado.");
+          await markAsRead();
+          router.refresh();
+        }
+      } else {
+        toast.error(data.error || `Erro ao ${action === "accept" ? "aceitar" : "recusar"} convite`);
       }
     } catch (err) {
       console.error(`${action} invite error:`, err);
+      toast.error("Erro de conexão");
     } finally {
       setLoading(false);
     }
@@ -68,12 +81,14 @@ export function NotificationCard({ notification }: { notification: Notification 
 
   return (
     <div
-      className={`rounded-xl border p-4 transition cursor-pointer ${
+      className={`rounded-xl border p-4 transition ${
+        notification.relatedCardId ? "cursor-pointer" : ""
+      } ${
         notification.readAt
           ? "bg-white border-neutral-200"
           : "bg-blue-50 border-blue-200 hover:bg-blue-100"
       }`}
-      onClick={notification.relatedCardId ? handleCardClick : markAsRead}
+      onClick={notification.relatedCardId ? handleCardClick : undefined}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">

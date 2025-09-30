@@ -74,9 +74,35 @@ export function AssigneeSelector({
     return !isAlreadyAssigned && (name.includes(term) || email.includes(term));
   });
 
-  function handleSelectUser(userEmail: string) {
+  async function handleSelectUser(userEmail: string) {
     setEmailInput(userEmail);
     setShowSuggestions(false);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/boards/${boardId}/cards/${cardId}/assignees`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Usuário atribuído com sucesso!");
+        setEmailInput("");
+        onUpdate();
+      } else {
+        toast.error(data.error || "Erro ao atribuir usuário");
+        console.error("Erro ao atribuir:", data);
+      }
+    } catch (err) {
+      toast.error("Erro de conexão");
+      console.error("Erro ao atribuir:", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAssign(e: React.FormEvent) {

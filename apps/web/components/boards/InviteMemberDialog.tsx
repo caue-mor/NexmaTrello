@@ -18,13 +18,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      loadAvailableUsers();
-    }
-  }, [isOpen]);
-
-  async function loadAvailableUsers() {
+  const loadAvailableUsers = async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/users/available?boardId=${boardId}`, {
@@ -41,7 +35,13 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadAvailableUsers();
+    }
+  }, [isOpen]);
 
   async function handleInvite(userEmail: string, role: "ADMIN" | "MEMBER") {
     setLoading(true);
@@ -61,11 +61,23 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
       if (res.ok) {
         const roleText = role === "ADMIN" ? "Admin" : "Membro";
         setSuccess(`Convite enviado para ${userEmail} como ${roleText}!`);
-        // Remover usuário da lista
-        setUsers(users.filter((u) => u.email !== userEmail));
-        setTimeout(() => setSuccess(""), 3000);
+        // Recarregar lista de usuários para refletir mudanças
+        setTimeout(() => {
+          setSuccess("");
+          loadAvailableUsers();
+        }, 2000);
       } else {
-        setError(data.error || "Erro ao enviar convite");
+        if (res.status === 409) {
+          // Conflict - convite já existe ou usuário já é membro
+          setError(data.error || "Este usuário já foi convidado ou já é membro");
+          // Recarregar lista para atualizar status
+          setTimeout(() => {
+            setError("");
+            loadAvailableUsers();
+          }, 3000);
+        } else {
+          setError(data.error || "Erro ao enviar convite");
+        }
       }
     } catch (err) {
       setError("Erro de conexão");
