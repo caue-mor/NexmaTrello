@@ -27,6 +27,12 @@ enum ClientStatus {
   EMERGENCIA
 }
 
+enum OnboardStatus {
+  ONBOARD
+  ATIVO
+  INATIVO
+}
+
 enum InviteStatus {
   PENDING
   ACCEPTED
@@ -260,25 +266,27 @@ model Comment {
 }
 
 model Client {
-  id          String       @id @default(cuid())
-  name        String
-  status      ClientStatus @default(NORMAL)
-  lead        Int          @default(0)
-  phone       String?
-  email       String?
-  document    String?      // CNPJ/CPF
-  sector      String?
-  region      String?
-  notes       String?
-  firstContact DateTime?   @default(now())
-  lastContact  DateTime?   @updatedAt
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String        @id @default(cuid())
+  name          String
+  status        ClientStatus  @default(NORMAL)
+  onboardStatus OnboardStatus @default(ONBOARD)
+  lead          Int           @default(0)
+  phone         String?
+  email         String?
+  document      String?       // CNPJ/CPF
+  sector        String?
+  region        String?
+  notes         String?
+  firstContact  DateTime?     @default(now())
+  lastContact   DateTime?     @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   cards      Card[]
   activities Activity[]
 
   @@index([status])
+  @@index([onboardStatus])
   @@index([createdAt])
   @@index([email])
 }

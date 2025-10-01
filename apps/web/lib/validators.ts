@@ -83,6 +83,7 @@ export const inviteAcceptSchema = z.object({
 export const clientCreateSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   status: z.enum(["NORMAL", "NEUTRO", "URGENTE", "EMERGENCIA"]).default("NORMAL"),
+  onboardStatus: z.enum(["ONBOARD", "ATIVO", "INATIVO"]).default("ONBOARD"),
   lead: z.number().int().min(0).default(0),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
@@ -95,6 +96,7 @@ export const clientCreateSchema = z.object({
 export const clientUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   status: z.enum(["NORMAL", "NEUTRO", "URGENTE", "EMERGENCIA"]).optional(),
+  onboardStatus: z.enum(["ONBOARD", "ATIVO", "INATIVO"]).optional(),
   lead: z.number().int().min(0).optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),

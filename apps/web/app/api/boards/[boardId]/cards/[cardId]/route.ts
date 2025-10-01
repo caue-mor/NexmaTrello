@@ -113,6 +113,23 @@ export async function PUT(
     if (data.dueAt !== undefined) updateData.dueAt = data.dueAt ? new Date(data.dueAt) : null;
     if (data.columnId !== undefined) updateData.columnId = data.columnId;
     if (data.completedAt !== undefined) updateData.completedAt = data.completedAt ? new Date(data.completedAt) : null;
+    if (data.clientId !== undefined) updateData.clientId = data.clientId;
+
+    // Buscar card atual para verificar se clientId está mudando
+    const currentCard = await prisma.card.findUnique({
+      where: { id: cardId, boardId },
+      select: { clientId: true, checklists: { select: { title: true } } },
+    });
+
+    if (!currentCard) {
+      return NextResponse.json({ error: "Card não encontrado" }, { status: 404 });
+    }
+
+    // Se está vinculando um cliente pela primeira vez ou mudando cliente
+    const isAddingClient = data.clientId && !currentCard.clientId;
+    const hasOnboardingChecklist = currentCard.checklists.some(
+      (c) => c.title === "OBJETIVOS - Onboarding Digital de Clientes"
+    );
 
     const card = await prisma.card.update({
       where: {
@@ -145,6 +162,32 @@ export async function PUT(
         // },
       },
     });
+
+    // Se um cliente foi vinculado pela primeira vez e não tem checklist de onboarding
+    if (isAddingClient && !hasOnboardingChecklist) {
+      const onboardingChecklist = await prisma.checklist.create({
+        data: {
+          cardId: card.id,
+          title: "OBJETIVOS - Onboarding Digital de Clientes",
+          items: {
+            create: [
+              { content: "Login e senha Facebook", done: false },
+              { content: "Login e senha Instagram", done: false },
+              { content: "WhatsApp comercial", done: false },
+              { content: "CNPJ", done: false },
+              { content: "Método de pagamento", done: false },
+              { content: "Drive do cliente com imagens/vídeos e logomarca", done: false },
+            ],
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+
+      // Adicionar checklist ao card retornado
+      card.checklists.push(onboardingChecklist);
+    }
 
     return NextResponse.json({ card });
   } catch (err) {

@@ -74,6 +74,32 @@ export async function POST(
       },
     });
 
+    // Se um cliente foi vinculado, criar automaticamente checklist de onboarding
+    if (data.clientId) {
+      const onboardingChecklist = await prisma.checklist.create({
+        data: {
+          cardId: card.id,
+          title: "OBJETIVOS - Onboarding Digital de Clientes",
+          items: {
+            create: [
+              { content: "Login e senha Facebook", done: false },
+              { content: "Login e senha Instagram", done: false },
+              { content: "WhatsApp comercial", done: false },
+              { content: "CNPJ", done: false },
+              { content: "Método de pagamento", done: false },
+              { content: "Drive do cliente com imagens/vídeos e logomarca", done: false },
+            ],
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+
+      // Adicionar checklist ao card retornado
+      card.checklists.push(onboardingChecklist);
+    }
+
     // Trigger real-time update
     await notifyCardCreated(boardId, card);
 
