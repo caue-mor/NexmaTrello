@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
   "/api/csrf",
   "/api/restore-db",
   "/api/migrate-notes",
+  "/api/debug/notes",
 ];
 
 export async function middleware(req: NextRequest) {
