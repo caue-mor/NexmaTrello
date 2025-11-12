@@ -8,6 +8,7 @@ const PUBLIC_ROUTES = [
   "/api/auth/register",
   "/api/csrf",
   "/api/restore-db",
+  "/api/migrate-notes",
 ];
 
 export async function middleware(req: NextRequest) {
@@ -30,7 +31,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Redirect to dashboard if authenticated and accessing auth pages
-  if (isPublicRoute && sessionCookie && pathname !== "/api/auth/logout" && pathname !== "/api/restore-db") {
+  if (isPublicRoute && sessionCookie && pathname !== "/api/auth/logout" && pathname !== "/api/restore-db" && pathname !== "/api/migrate-notes") {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
