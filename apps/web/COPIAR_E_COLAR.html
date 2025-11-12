@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurar Banco Railway - Copiar SQL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .step p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .copy-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 1.5em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: block;
+            margin: 40px auto;
+            width: fit-content;
+        }
+
+        .copy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .copy-button:active {
+            transform: translateY(0);
+        }
+
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            margin: 20px 0;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .warning strong {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        pre {
+            display: none;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Restaurar Banco Railway</h1>
+            <p>Método 100% Visual - Copiar e Colar</p>
+        </div>
+
+        <div class="content">
+            <div class="warning">
+                <strong>⚠️ ATENÇÃO:</strong>
+                Este SQL vai recriar TODAS as tabelas do seu banco Railway.
+                O banco atual está vazio de qualquer forma, então não há risco de perder dados.
+            </div>
+
+            <div class="step">
+                <h3>📋 Passo 1: Copiar o SQL</h3>
+                <p>Clique no botão roxo abaixo para copiar automaticamente todo o código SQL para seu clipboard.</p>
+            </div>
+
+            <button class="copy-button" onclick="copySQL()">
+                📋 COPIAR SQL COMPLETO
+            </button>
+
+            <div class="success" id="successMessage">
+                ✅ SQL copiado! Agora siga o Passo 2...
+            </div>
+
+            <div class="step">
+                <h3>🌐 Passo 2: Abrir o Railway</h3>
+                <p>
+                    1. Acesse: <a href="https://railway.app" target="_blank"><strong>railway.app</strong></a><br>
+                    2. Abra o projeto <span class="highlight">NEXLIST</span><br>
+                    3. Clique no card <span class="highlight">Postgres</span>
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>💻 Passo 3: Abrir o Query Tool</h3>
+                <p>
+                    No Railway, procure por:<br>
+                    • Aba <span class="highlight">"Query"</span> ou<br>
+                    • Botão <span class="highlight">"SQL Editor"</span> ou<br>
+                    • Link <span class="highlight">"Run SQL"</span><br><br>
+                    <strong>Dica:</strong> Geralmente está próximo à aba "Data" ou no canto superior direito.
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>📝 Passo 4: Colar e Executar</h3>
+                <p>
+                    1. No editor SQL que abrir, <strong>cole</strong> o SQL (Cmd+V ou Ctrl+V)<br>
+                    2. Clique em <span class="highlight">"Run"</span> ou <span class="highlight">"Execute"</span><br>
+                    3. Aguarde ~30-60 segundos<br>
+                    4. Deve mostrar: <span class="highlight">✅ Database restored successfully!</span>
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>✅ Passo 5: Verificar</h3>
+                <p>
+                    Volte para a aba <span class="highlight">"Data"</span> no Railway e recarregue a página.<br>
+                    Você deve ver ~17 tabelas agora: User, Board, Card, Checklist, etc.
+                </p>
+            </div>
+
+            <div class="warning">
+                <strong>🎉 Depois de Restaurar:</strong>
+                Execute no terminal:<br><br>
+                <code style="background: white; padding: 10px; display: block; border-radius: 5px; margin-top: 10px;">
+                    npm run seed:users-only<br>
+                    npm run dev
+                </code><br>
+                Login: <strong>alice@nexma.com</strong> / Senha: <strong>senha123</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- SQL Content (hidden) -->
+    <pre id="sqlContent">
+-- ============================================
+-- NEXLIST - Restauração Completa do Banco de Dados
+-- Data: 12 Nov 2025
+-- Versão: 2.0
+-- ============================================
+
+CREATE TYPE "Role" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
+CREATE TYPE "Urgency" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+CREATE TYPE "ClientStatus" AS ENUM ('NORMAL', 'NEUTRO', 'URGENTE', 'EMERGENCIA');
+CREATE TYPE "OnboardStatus" AS ENUM ('ONBOARD', 'ATIVO', 'INATIVO');
+CREATE TYPE "InviteStatus" AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED');
+CREATE TYPE "NotificationType" AS ENUM ('INVITE', 'ALERT');
+CREATE TYPE "ActivityType" AS ENUM ('CARD_CREATED','CARD_UPDATED','CARD_MOVED','CARD_DELETED','CARD_ASSIGNED','CARD_UNASSIGNED','CHECKLIST_CREATED','CHECKLIST_ITEM_COMPLETED','CHECKLIST_ITEM_UNCOMPLETED','COMMENT_ADDED','ATTACHMENT_ADDED','ATTACHMENT_DELETED','LABEL_ADDED','LABEL_REMOVED','CLIENT_STATUS_CHANGED','DUE_DATE_CHANGED');
+
+CREATE TABLE "User" ("id" TEXT NOT NULL,"email" TEXT NOT NULL,"name" TEXT,"passwordHash" TEXT NOT NULL,"isActive" BOOLEAN NOT NULL DEFAULT true,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Session" ("id" TEXT NOT NULL,"userId" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Session_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Board" ("id" TEXT NOT NULL,"title" TEXT NOT NULL,"isOrgWide" BOOLEAN NOT NULL DEFAULT false,"ownerId" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "Board_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "BoardMember" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"userId" TEXT NOT NULL,"role" "Role" NOT NULL DEFAULT 'MEMBER',"joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "BoardMember_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Column" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"title" TEXT NOT NULL,"order" INTEGER NOT NULL,CONSTRAINT "Column_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Card" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"columnId" TEXT NOT NULL,"title" TEXT NOT NULL,"description" TEXT,"urgency" "Urgency" NOT NULL DEFAULT 'MEDIUM',"order" INTEGER NOT NULL DEFAULT 0,"createdById" TEXT NOT NULL,"clientId" TEXT,"dueAt" TIMESTAMP(3),"completedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "Card_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Checklist" ("id" TEXT NOT NULL,"cardId" TEXT NOT NULL,"title" TEXT NOT NULL,CONSTRAINT "Checklist_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "ChecklistItem" ("id" TEXT NOT NULL,"checklistId" TEXT NOT NULL,"content" TEXT NOT NULL,"done" BOOLEAN NOT NULL DEFAULT false,"doneAt" TIMESTAMP(3),CONSTRAINT "ChecklistItem_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "CardAssignee" ("cardId" TEXT NOT NULL,"userId" TEXT NOT NULL,"assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "CardAssignee_pkey" PRIMARY KEY ("cardId","userId"));
+CREATE TABLE "Invite" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"email" TEXT NOT NULL,"token" TEXT NOT NULL,"status" "InviteStatus" NOT NULL DEFAULT 'PENDING',"role" "Role" NOT NULL DEFAULT 'MEMBER',"invitedById" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"acceptedById" TEXT,CONSTRAINT "Invite_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Notification" ("id" TEXT NOT NULL,"userId" TEXT NOT NULL,"type" "NotificationType" NOT NULL,"title" TEXT NOT NULL,"message" TEXT NOT NULL,"readAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"relatedCardId" TEXT,"relatedBoardId" TEXT,CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Comment" ("id" TEXT NOT NULL,"cardId" TEXT NOT NULL,"userId" TEXT NOT NULL,"content" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "Comment_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Client" ("id" TEXT NOT NULL,"name" TEXT NOT NULL,"status" "ClientStatus" NOT NULL DEFAULT 'NORMAL',"onboardStatus" "OnboardStatus" NOT NULL DEFAULT 'ONBOARD',"lead" INTEGER NOT NULL DEFAULT 0,"phone" TEXT,"email" TEXT,"document" TEXT,"sector" TEXT,"region" TEXT,"notes" TEXT,"firstContact" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,"lastContact" TIMESTAMP(3) NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "Client_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Label" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"name" TEXT NOT NULL,"color" TEXT NOT NULL,CONSTRAINT "Label_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "CardLabel" ("cardId" TEXT NOT NULL,"labelId" TEXT NOT NULL,CONSTRAINT "CardLabel_pkey" PRIMARY KEY ("cardId","labelId"));
+CREATE TABLE "Attachment" ("id" TEXT NOT NULL,"cardId" TEXT NOT NULL,"userId" TEXT NOT NULL,"fileName" TEXT NOT NULL,"fileUrl" TEXT NOT NULL,"fileSize" INTEGER NOT NULL,"mimeType" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Attachment_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "ChecklistTemplate" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"name" TEXT NOT NULL,"description" TEXT,"items" JSONB NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "ChecklistTemplate_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Activity" ("id" TEXT NOT NULL,"boardId" TEXT NOT NULL,"cardId" TEXT,"userId" TEXT NOT NULL,"clientId" TEXT,"type" "ActivityType" NOT NULL,"metadata" JSONB,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "Activity_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE INDEX "Session_userId_idx" ON "Session"("userId");
+CREATE INDEX "BoardMember_boardId_idx" ON "BoardMember"("boardId");
+CREATE INDEX "BoardMember_userId_idx" ON "BoardMember"("userId");
+CREATE UNIQUE INDEX "BoardMember_boardId_userId_key" ON "BoardMember"("boardId","userId");
+CREATE INDEX "Column_boardId_idx" ON "Column"("boardId");
+CREATE INDEX "Card_boardId_idx" ON "Card"("boardId");
+CREATE INDEX "Card_columnId_order_idx" ON "Card"("columnId","order");
+CREATE INDEX "Card_createdById_idx" ON "Card"("createdById");
+CREATE INDEX "Card_clientId_idx" ON "Card"("clientId");
+CREATE INDEX "Card_dueAt_idx" ON "Card"("dueAt");
+CREATE INDEX "Card_completedAt_idx" ON "Card"("completedAt");
+CREATE INDEX "Card_urgency_idx" ON "Card"("urgency");
+CREATE INDEX "Checklist_cardId_idx" ON "Checklist"("cardId");
+CREATE INDEX "ChecklistItem_checklistId_idx" ON "ChecklistItem"("checklistId");
+CREATE INDEX "ChecklistItem_done_idx" ON "ChecklistItem"("done");
+CREATE INDEX "ChecklistItem_doneAt_idx" ON "ChecklistItem"("doneAt");
+CREATE INDEX "CardAssignee_cardId_idx" ON "CardAssignee"("cardId");
+CREATE INDEX "CardAssignee_userId_idx" ON "CardAssignee"("userId");
+CREATE UNIQUE INDEX "Invite_token_key" ON "Invite"("token");
+CREATE INDEX "Invite_boardId_idx" ON "Invite"("boardId");
+CREATE INDEX "Invite_email_idx" ON "Invite"("email");
+CREATE INDEX "Invite_token_idx" ON "Invite"("token");
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
+CREATE INDEX "Notification_userId_readAt_idx" ON "Notification"("userId","readAt");
+CREATE INDEX "Notification_relatedCardId_idx" ON "Notification"("relatedCardId");
+CREATE INDEX "Comment_cardId_idx" ON "Comment"("cardId");
+CREATE INDEX "Comment_userId_idx" ON "Comment"("userId");
+CREATE INDEX "Client_status_idx" ON "Client"("status");
+CREATE INDEX "Client_onboardStatus_idx" ON "Client"("onboardStatus");
+CREATE INDEX "Client_createdAt_idx" ON "Client"("createdAt");
+CREATE INDEX "Client_email_idx" ON "Client"("email");
+CREATE INDEX "Label_boardId_idx" ON "Label"("boardId");
+CREATE INDEX "CardLabel_cardId_idx" ON "CardLabel"("cardId");
+CREATE INDEX "CardLabel_labelId_idx" ON "CardLabel"("labelId");
+CREATE INDEX "Attachment_cardId_idx" ON "Attachment"("cardId");
+CREATE INDEX "Attachment_userId_idx" ON "Attachment"("userId");
+CREATE INDEX "ChecklistTemplate_boardId_idx" ON "ChecklistTemplate"("boardId");
+CREATE INDEX "Activity_boardId_idx" ON "Activity"("boardId");
+CREATE INDEX "Activity_cardId_idx" ON "Activity"("cardId");
+CREATE INDEX "Activity_userId_idx" ON "Activity"("userId");
+CREATE INDEX "Activity_clientId_idx" ON "Activity"("clientId");
+CREATE INDEX "Activity_createdAt_idx" ON "Activity"("createdAt");
+
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Board" ADD CONSTRAINT "Board_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "BoardMember" ADD CONSTRAINT "BoardMember_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "BoardMember" ADD CONSTRAINT "BoardMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Column" ADD CONSTRAINT "Column_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Card" ADD CONSTRAINT "Card_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Card" ADD CONSTRAINT "Card_columnId_fkey" FOREIGN KEY ("columnId") REFERENCES "Column"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Card" ADD CONSTRAINT "Card_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Card" ADD CONSTRAINT "Card_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Checklist" ADD CONSTRAINT "Checklist_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ChecklistItem" ADD CONSTRAINT "ChecklistItem_checklistId_fkey" FOREIGN KEY ("checklistId") REFERENCES "Checklist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CardAssignee" ADD CONSTRAINT "CardAssignee_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CardAssignee" ADD CONSTRAINT "CardAssignee_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_invitedById_fkey" FOREIGN KEY ("invitedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_acceptedById_fkey" FOREIGN KEY ("acceptedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_relatedCardId_fkey" FOREIGN KEY ("relatedCardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Label" ADD CONSTRAINT "Label_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CardLabel" ADD CONSTRAINT "CardLabel_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CardLabel" ADD CONSTRAINT "CardLabel_labelId_fkey" FOREIGN KEY ("labelId") REFERENCES "Label"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Attachment" ADD CONSTRAINT "Attachment_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Attachment" ADD CONSTRAINT "Attachment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ChecklistTemplate" ADD CONSTRAINT "ChecklistTemplate_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "Board"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE TABLE "_prisma_migrations" ("id" TEXT NOT NULL,"checksum" TEXT NOT NULL,"finished_at" TIMESTAMP(3),"migration_name" TEXT NOT NULL,"logs" TEXT,"rolled_back_at" TIMESTAMP(3),"started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"applied_steps_count" INTEGER NOT NULL DEFAULT 0,CONSTRAINT "_prisma_migrations_pkey" PRIMARY KEY ("id"));
+INSERT INTO "_prisma_migrations" (id, checksum, migration_name, finished_at, applied_steps_count) VALUES (gen_random_uuid()::text, 'consolidated', '20250930012214_init', NOW(), 1),(gen_random_uuid()::text, 'consolidated', '20250930015203_add_comments_and_notifications', NOW(), 1),(gen_random_uuid()::text, 'consolidated', '20250930150235_add_role_to_invite', NOW(), 1),(gen_random_uuid()::text, 'consolidated', '20251112000000_add_optimized_indexes', NOW(), 1);
+
+SELECT 'Database restored successfully!' AS status, COUNT(*) AS total_tables FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+    </pre>
+
+    <script>
+        function copySQL() {
+            const sqlContent = document.getElementById('sqlContent').textContent;
+            navigator.clipboard.writeText(sqlContent).then(() => {
+                // Mostrar mensagem de sucesso
+                const successMsg = document.getElementById('successMessage');
+                successMsg.style.display = 'block';
+
+                // Mudar botão temporariamente
+                const button = document.querySelector('.copy-button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '✅ COPIADO!';
+                button.style.background = '#10b981';
+
+                // Voltar ao normal após 3 segundos
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                }, 3000);
+
+                // Scroll suave para próximo passo
+                setTimeout(() => {
+                    document.querySelector('.step:nth-of-type(2)').scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 500);
+            }).catch(err => {
+                alert('Erro ao copiar. Por favor, copie manualmente o arquivo RESTORE_DATABASE_COMPLETE.sql');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -173,6 +173,8 @@ model Card {
   @@index([createdById])
   @@index([clientId])
   @@index([dueAt])
+  @@index([completedAt])
+  @@index([urgency])
 }
 
 model Checklist {
@@ -196,6 +198,8 @@ model ChecklistItem {
   checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
 
   @@index([checklistId])
+  @@index([done])
+  @@index([doneAt])
 }
 
 model CardAssignee {
@@ -248,6 +252,8 @@ model Notification {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([userId, readAt])
+  @@index([relatedCardId])
 }
 
 model Comment {

@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+// Date validation helpers
+const dateStringSchema = z
+  .string()
+  .refine(
+    (val) => {
+      if (!val || val.trim() === "") return true; // Allow empty
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    },
+    { message: "Data inválida" }
+  )
+  .refine(
+    (val) => {
+      if (!val || val.trim() === "") return true;
+      const date = new Date(val);
+      // Verificar se não é uma data muito antiga ou futura (sanity check)
+      const minDate = new Date("2000-01-01");
+      const maxDate = new Date("2100-12-31");
+      return date >= minDate && date <= maxDate;
+    },
+    { message: "Data fora do intervalo válido (2000-2100)" }
+  );
+
 // Auth schemas
 export const registerSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -38,20 +61,20 @@ export const columnUpdateSchema = z.object({
 // Card schemas
 export const cardCreateSchema = z.object({
   columnId: z.string(),
-  title: z.string().min(1, "Título obrigatório"),
+  title: z.string().min(1, "Título obrigatório").max(255, "Título muito longo"),
   description: z.string().optional(),
   urgency: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-  dueAt: z.string().optional(),
+  dueAt: dateStringSchema.optional(),
   clientId: z.string().optional(),
 });
 
 export const cardUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
+  title: z.string().min(1).max(255).optional(),
   description: z.string().optional(),
   urgency: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-  dueAt: z.string().optional(),
+  dueAt: dateStringSchema.optional(),
   columnId: z.string().optional(),
-  completedAt: z.string().optional(),
+  completedAt: dateStringSchema.optional(),
   clientId: z.string().optional(),
 });
 

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurar Banco - NexList</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .step-number {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            display: block;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .details {
+            margin-top: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .details strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Restaurar Banco de Dados</h1>
+        <p class="subtitle">NexList - Railway Production</p>
+
+        <div class="warning">
+            ⚠️ <strong>ATENÇÃO:</strong> Este processo vai recriar todas as tabelas do banco. Dados existentes serão perdidos!
+        </div>
+
+        <div class="step">
+            <div class="step-number">PASSO 1</div>
+            Certifique-se que fez o deploy do código para o Railway:
+            <br><code>git push</code>
+        </div>
+
+        <div class="step">
+            <div class="step-number">PASSO 2</div>
+            Aguarde 2-3 minutos para o deploy completar no Railway.
+        </div>
+
+        <div class="step">
+            <div class="step-number">PASSO 3</div>
+            Clique no botão abaixo para restaurar o banco de dados.
+        </div>
+
+        <button class="button" onclick="restoreDatabase()">
+            🔧 RESTAURAR BANCO AGORA
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Restaurando banco... Aguarde 30-60 segundos...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        async function restoreDatabase() {
+            const button = document.querySelector('.button');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+
+            // Resetar UI
+            button.disabled = true;
+            loading.classList.add('active');
+            result.style.display = 'none';
+            result.className = 'result';
+
+            try {
+                const response = await fetch('https://nexmatrello-production.up.railway.app/api/restore-db', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        password: 'RESTAURAR_BANCO_NEXMA_2025'
+                    })
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('active');
+
+                if (response.ok && data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <h2>✅ Banco Restaurado com Sucesso!</h2>
+                        <div class="details">
+                            <p><strong>Statements executados:</strong> ${data.executed}/${data.total}</p>
+                            <p><strong>Total de tabelas:</strong> ${data.tableCount}</p>
+                            ${data.errors ? `<p><strong>Avisos:</strong> ${data.errors.length} erros ignorados (normal)</p>` : ''}
+                        </div>
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #28a745;">
+                            <p><strong>🎉 Próximos passos:</strong></p>
+                            <p>1. Volte ao Terminal e execute: <code>npm run seed:users-only</code></p>
+                            <p>2. Depois execute: <code>npm run dev</code></p>
+                            <p>3. Acesse: <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error || data.details || 'Erro desconhecido');
+                }
+
+            } catch (error) {
+                loading.classList.remove('active');
+                result.className = 'result error';
+                result.innerHTML = `
+                    <h2>❌ Erro na Restauração</h2>
+                    <div class="details">
+                        <p><strong>Detalhes:</strong> ${error.message}</p>
+                        <p style="margin-top: 10px;">
+                            <strong>Possíveis causas:</strong><br>
+                            • Deploy ainda não completou (aguarde mais 1-2 minutos)<br>
+                            • Erro de conexão com o Railway<br>
+                            • Arquivo RESTORE_DATABASE_COMPLETE.sql não encontrado
+                        </p>
+                        <p style="margin-top: 10px;">
+                            <strong>Solução:</strong> Aguarde o deploy completar e tente novamente.
+                        </p>
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

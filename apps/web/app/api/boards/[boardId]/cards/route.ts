@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cardCreateSchema } from "@/lib/validators";
 import { assertBoardRole } from "@/lib/rbac";
 import { notifyCardCreated } from "@/lib/pusher";
 import { logCardCreated } from "@/lib/activity";
 import { z } from "zod";
+import { withApiProtection } from "@/lib/api-helpers";
 
 export async function POST(
   req: Request,
   { params }: { params: { boardId: string } }
 ) {
   try {
-    const { user } = await getSession();
+    // Aplicar proteções (auth, CSRF, rate limit)
+    const protection = await withApiProtection(req);
+    if (protection.error) return protection.error;
+    const { user } = protection;
+
     if (!user) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
@@ -34,110 +38,111 @@ export async function POST(
       }
     }
 
-    // TODO: Adicionar cálculo de order quando o campo existir no banco
-    // const maxOrderCard = await prisma.card.findFirst({
-    //   where: { columnId: data.columnId },
-    //   orderBy: { order: 'desc' },
-    //   select: { order: true },
-    // });
-    // const nextOrder = (maxOrderCard?.order ?? -1) + 1;
-
-    const card = await prisma.card.create({
-      data: {
-        boardId,
-        columnId: data.columnId,
-        title: data.title,
-        description: data.description,
-        urgency: data.urgency || "MEDIUM",
-        dueAt: dueAtDate,
-        clientId: data.clientId,
-        createdById: user.id,
-        // order: nextOrder, // TODO: Descomentar quando campo existir
-      },
-      include: {
-        checklists: {
-          include: {
-            items: true,
-          },
+    // Usar transaction para garantir atomicidade de todas as operações
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Criar card
+      const card = await tx.card.create({
+        data: {
+          boardId,
+          columnId: data.columnId,
+          title: data.title,
+          description: data.description,
+          urgency: data.urgency || "MEDIUM",
+          dueAt: dueAtDate,
+          clientId: data.clientId,
+          createdById: user.id,
         },
-        assignees: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
+        include: {
+          checklists: {
+            include: {
+              items: true,
+            },
+          },
+          assignees: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
           },
         },
-      },
-    });
-
-    // Se um cliente foi vinculado, criar automaticamente checklist de onboarding
-    if (data.clientId) {
-      const onboardingChecklist = await prisma.checklist.create({
-        data: {
-          cardId: card.id,
-          title: "OBJETIVOS - Onboarding Digital de Clientes",
-          items: {
-            create: [
-              { content: "Login e senha Facebook", done: false },
-              { content: "Login e senha Instagram", done: false },
-              { content: "WhatsApp comercial", done: false },
-              { content: "CNPJ", done: false },
-              { content: "Método de pagamento", done: false },
-              { content: "Drive do cliente com imagens/vídeos e logomarca", done: false },
-            ],
-          },
-        },
-        include: {
-          items: true,
-        },
       });
 
-      // Adicionar checklist ao card retornado
-      card.checklists.push(onboardingChecklist);
-    }
+      // 2. Se um cliente foi vinculado, criar automaticamente checklist de onboarding
+      if (data.clientId) {
+        const onboardingChecklist = await tx.checklist.create({
+          data: {
+            cardId: card.id,
+            title: "OBJETIVOS - Onboarding Digital de Clientes",
+            items: {
+              create: [
+                { content: "Login e senha Facebook", done: false },
+                { content: "Login e senha Instagram", done: false },
+                { content: "WhatsApp comercial", done: false },
+                { content: "CNPJ", done: false },
+                { content: "Método de pagamento", done: false },
+                {
+                  content:
+                    "Drive do cliente com imagens/vídeos e logomarca",
+                  done: false,
+                },
+              ],
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
 
-    // Trigger real-time update
-    await notifyCardCreated(boardId, card);
+        // Adicionar checklist ao card retornado
+        card.checklists.push(onboardingChecklist);
+      }
+
+      // 3. Buscar membros do board para notificações
+      const boardMembers = await tx.boardMember.findMany({
+        where: {
+          boardId,
+          userId: { not: user.id }, // Não notificar quem criou
+        },
+        select: { userId: true },
+      });
+
+      // 4. Buscar informações do board
+      const board = await tx.board.findUnique({
+        where: { id: boardId },
+        select: { title: true },
+      });
+
+      // 5. Criar notificações para membros
+      if (boardMembers.length > 0) {
+        const notifications = boardMembers.map((member) => ({
+          userId: member.userId,
+          type: "ALERT" as const,
+          title: "Novo card criado",
+          message: `Card "${card.title}" foi criado no board "${board?.title || "Desconhecido"}"`,
+          relatedCardId: card.id,
+          relatedBoardId: boardId,
+        }));
+
+        await tx.notification.createMany({
+          data: notifications,
+        });
+      }
+
+      return { card, board };
+    });
+
+    // Trigger real-time update (fora da transaction)
+    await notifyCardCreated(boardId, result.card);
 
     // TODO: Descomentar quando modelo Activity existir no banco
-    // await logCardCreated(card.id, user.id);
+    // await logCardCreated(result.card.id, user.id);
 
-    // Notificar TODOS os membros do board (exceto quem criou)
-    const boardMembers = await prisma.boardMember.findMany({
-      where: {
-        boardId,
-        userId: { not: user.id }, // Não notificar quem criou
-      },
-      select: { userId: true },
-    });
-
-    // Buscar informações do board
-    const board = await prisma.board.findUnique({
-      where: { id: boardId },
-      select: { title: true },
-    });
-
-    // Criar notificação para cada membro
-    const notifications = boardMembers.map((member) => ({
-      userId: member.userId,
-      type: "ALERT" as const,
-      title: "Novo card criado",
-      message: `Card "${card.title}" foi criado no board "${board?.title || "Desconhecido"}"`,
-      relatedCardId: card.id,
-      relatedBoardId: boardId,
-    }));
-
-    if (notifications.length > 0) {
-      await prisma.notification.createMany({
-        data: notifications,
-      });
-    }
-
-    return NextResponse.json({ card });
+    return NextResponse.json({ card: result.card });
   } catch (err) {
     if (err instanceof z.ZodError) {
       // Extract first error message from Zod validation
