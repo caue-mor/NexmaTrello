@@ -27,6 +27,7 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [csrf, setCsrf] = useState("");
 
   const loadAvailableUsers = async () => {
     setLoading(true);
@@ -49,6 +50,12 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
 
   useEffect(() => {
     if (isOpen) {
+      // Fetch CSRF token
+      fetch("/api/csrf", { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => setCsrf(data.csrf))
+        .catch((err) => console.error("Erro ao buscar CSRF:", err));
+
       loadAvailableUsers();
     }
   }, [isOpen]);
@@ -59,11 +66,16 @@ export function InviteMemberDialog({ boardId }: { boardId: string }) {
     setSuccess("");
 
     try {
+      // Refetch CSRF token before submission
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch("/api/invites/send", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ boardId, email: userEmail, role }),
+        body: JSON.stringify({ boardId, email: userEmail, role, csrf: freshCsrf }),
       });
 
       const data = await res.json();

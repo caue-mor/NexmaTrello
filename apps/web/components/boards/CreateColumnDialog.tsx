@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -9,6 +9,16 @@ export function CreateColumnDialog({ boardId }: { boardId: string }) {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [csrf, setCsrf] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/csrf", { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => setCsrf(data.csrf))
+        .catch((err) => console.error("Erro ao buscar CSRF:", err));
+    }
+  }, [isOpen]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -16,11 +26,16 @@ export function CreateColumnDialog({ boardId }: { boardId: string }) {
     setError("");
 
     try {
+      // Refetch CSRF token before submission
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch(`/api/boards/${boardId}/columns`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, csrf: freshCsrf }),
       });
 
       const data = await res.json();

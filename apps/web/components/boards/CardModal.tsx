@@ -82,8 +82,15 @@ export function CardModal({
   const [newItemContent, setNewItemContent] = useState<{ [key: string]: string }>({});
   const [newComment, setNewComment] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [csrf, setCsrf] = useState("");
 
   useEffect(() => {
+    // Fetch CSRF token
+    fetch("/api/csrf", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setCsrf(data.csrf))
+      .catch((err) => console.error("Erro ao buscar CSRF:", err));
+
     loadCard();
   }, [cardId]);
 
@@ -108,11 +115,16 @@ export function CardModal({
     if (!newChecklistTitle.trim()) return;
 
     try {
+      // Refetch CSRF token before submission
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch(`/api/boards/${boardId}/cards/${cardId}/checklists`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newChecklistTitle }),
+        body: JSON.stringify({ title: newChecklistTitle, csrf: freshCsrf }),
       });
 
       if (res.ok) {
@@ -129,13 +141,18 @@ export function CardModal({
     if (!content?.trim()) return;
 
     try {
+      // Refetch CSRF token before submission
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch(
         `/api/boards/${boardId}/cards/${cardId}/checklists/${checklistId}/items`,
         {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, csrf: freshCsrf }),
         }
       );
 
@@ -205,11 +222,16 @@ export function CardModal({
     if (!newComment.trim()) return;
 
     try {
+      // Refetch CSRF token before submission
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch(`/api/boards/${boardId}/cards/${cardId}/comments`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment }),
+        body: JSON.stringify({ content: newComment, csrf: freshCsrf }),
       });
 
       if (res.ok) {

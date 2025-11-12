@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NoteCard } from "./NoteCard";
 import { NoteEditor } from "./NoteEditor";
@@ -45,6 +45,15 @@ export function NotesClient({
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [filter, setFilter] = useState<"all" | "personal" | "board" | "card">("all");
   const [searchTags, setSearchTags] = useState<string[]>([]);
+  const [csrf, setCsrf] = useState("");
+
+  useEffect(() => {
+    // Fetch CSRF token on mount
+    fetch("/api/csrf", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setCsrf(data.csrf))
+      .catch((err) => console.error("Erro ao buscar CSRF:", err));
+  }, []);
 
   // Filtrar notas
   const filteredNotes = notes.filter((note) => {
@@ -63,13 +72,18 @@ export function NotesClient({
   const regularNotes = filteredNotes.filter((n) => !n.isPinned);
 
   async function handleSave(noteData: Partial<Note>) {
+    // Refetch CSRF token before submission
+    const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+    const csrfData = await csrfRes.json();
+    const freshCsrf = csrfData.csrf;
+
     if (selectedNote) {
       // Update
       const res = await fetch(`/api/notes/${selectedNote.id}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(noteData),
+        body: JSON.stringify({ ...noteData, csrf: freshCsrf }),
       });
 
       if (res.ok) {
@@ -82,7 +96,7 @@ export function NotesClient({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(noteData),
+        body: JSON.stringify({ ...noteData, csrf: freshCsrf }),
       });
 
       if (res.ok) {
@@ -110,11 +124,16 @@ export function NotesClient({
     const note = notes.find((n) => n.id === noteId);
     if (!note) return;
 
+    // Refetch CSRF token before submission
+    const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+    const csrfData = await csrfRes.json();
+    const freshCsrf = csrfData.csrf;
+
     const res = await fetch(`/api/notes/${noteId}`, {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isPinned: !note.isPinned }),
+      body: JSON.stringify({ isPinned: !note.isPinned, csrf: freshCsrf }),
     });
 
     if (res.ok) {

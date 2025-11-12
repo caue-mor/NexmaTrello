@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,17 +16,32 @@ export function CreateClientDialog() {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"NORMAL" | "NEUTRO" | "URGENTE" | "EMERGENCIA">("NORMAL");
   const [lead, setLead] = useState(0);
+  const [csrf, setCsrf] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      fetch("/api/csrf", { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => setCsrf(data.csrf))
+        .catch((err) => console.error("Erro ao buscar CSRF:", err));
+    }
+  }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Refetch CSRF token before submission
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch("/api/clients", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, status, lead }),
+        body: JSON.stringify({ name, status, lead, csrf: freshCsrf }),
       });
 
       if (!res.ok) throw new Error("Erro ao criar cliente");
