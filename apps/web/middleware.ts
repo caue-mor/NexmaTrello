@@ -32,7 +32,15 @@ export async function middleware(req: NextRequest) {
   }
 
   // Redirect to dashboard if authenticated and accessing auth pages
-  if (isPublicRoute && sessionCookie && pathname !== "/api/auth/logout" && pathname !== "/api/restore-db" && pathname !== "/api/migrate-notes") {
+  const API_EXCEPTIONS = [
+    "/api/auth/logout",
+    "/api/restore-db",
+    "/api/migrate-notes",
+    "/api/csrf",
+    "/api/debug/notes"
+  ];
+
+  if (isPublicRoute && sessionCookie && !API_EXCEPTIONS.includes(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
