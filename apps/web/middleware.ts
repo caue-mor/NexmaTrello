@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { lucia } from "./lib/auth";
-import { cookies } from "next/headers";
 
 const PUBLIC_ROUTES = [
   "/login",
@@ -9,6 +7,7 @@ const PUBLIC_ROUTES = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/csrf",
+  "/api/restore-db",
 ];
 
 export async function middleware(req: NextRequest) {
@@ -30,34 +29,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Validate session and check if user is active
-  if (!isPublicRoute && sessionCookie) {
-    try {
-      const { session, user } = await lucia.validateSession(sessionCookie);
-
-      // Check if session is invalid or user is inactive
-      if (!session || !user || !user.isActive) {
-        // Clear invalid session
-        const response = NextResponse.redirect(new URL("/login", req.url));
-        response.cookies.set("auth_session", "", {
-          maxAge: 0,
-          path: "/",
-        });
-        return response;
-      }
-    } catch (error) {
-      // Session validation failed, redirect to login
-      const response = NextResponse.redirect(new URL("/login", req.url));
-      response.cookies.set("auth_session", "", {
-        maxAge: 0,
-        path: "/",
-      });
-      return response;
-    }
-  }
-
   // Redirect to dashboard if authenticated and accessing auth pages
-  if (isPublicRoute && sessionCookie && pathname !== "/api/auth/logout") {
+  if (isPublicRoute && sessionCookie && pathname !== "/api/auth/logout" && pathname !== "/api/restore-db") {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
