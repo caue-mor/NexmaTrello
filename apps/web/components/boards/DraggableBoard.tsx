@@ -140,6 +140,34 @@ export function DraggableBoard({
     }
   }
 
+  async function handleDeleteColumn(columnId: string) {
+    if (!confirm("Tem certeza que deseja excluir esta coluna vazia?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}/columns/${columnId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || "Erro ao excluir coluna");
+        return;
+      }
+
+      // Remove column from state
+      setColumns(columns.filter((col) => col.id !== columnId));
+
+      // Reload page to sync with server
+      window.location.reload();
+    } catch (err) {
+      console.error("Delete column error:", err);
+      alert("Erro ao excluir coluna");
+    }
+  }
+
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -152,9 +180,22 @@ export function DraggableBoard({
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-neutral-900">{column.title}</h3>
-                <span className="text-sm text-neutral-500">
-                  {column.cards.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-neutral-500">
+                    {column.cards.length}
+                  </span>
+                  {column.cards.length === 0 && (
+                    <button
+                      onClick={() => handleDeleteColumn(column.id)}
+                      className="p-1 hover:bg-red-100 rounded text-red-600 transition"
+                      title="Excluir coluna vazia"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Droppable Cards Area */}
