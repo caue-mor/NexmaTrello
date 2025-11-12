@@ -75,15 +75,33 @@ export function AssigneeSelector({
     return !isAlreadyAssigned && (name.includes(term) || email.includes(term));
   });
 
-  function handleSelectUser(userEmail: string) {
-    // Apenas preenche o input, não atribui automaticamente
-    setEmailInput(userEmail);
+  async function handleSelectUser(userEmail: string) {
+    console.log("Atribuindo usuário:", userEmail);
     setShowSuggestions(false);
-    // Focar no botão "Atribuir" para facilitar
-    setTimeout(() => {
-      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-      submitButton?.focus();
-    }, 100);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/boards/${boardId}/cards/${cardId}/assignees`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Usuário atribuído!");
+        setEmailInput("");
+        onUpdate();
+      } else {
+        toast.error(data.error || "Erro ao atribuir");
+      }
+    } catch (err) {
+      toast.error("Erro de conexão");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAssign(e: React.FormEvent) {
@@ -202,11 +220,15 @@ export function AssigneeSelector({
                 }
               }}
               disabled={loading}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
 
             {/* Dropdown de sugestões */}
             {showSuggestions && filteredUsers.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-[9999] w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                 {filteredUsers.map((user) => (
                   <button
                     key={user.id}
