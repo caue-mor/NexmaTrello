@@ -26,9 +26,17 @@ export function CreateCardDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
+  const [csrf, setCsrf] = useState("");
 
   useEffect(() => {
     if (isOpen) {
+      // Fetch CSRF token
+      fetch("/api/csrf", { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => setCsrf(data.csrf))
+        .catch((err) => console.error("Erro ao buscar CSRF:", err));
+
+      // Fetch clients
       fetch("/api/clients", { credentials: "include" })
         .then((res) => res.json())
         .then((data) => setClients(data))
@@ -42,6 +50,11 @@ export function CreateCardDialog({
     setError("");
 
     try {
+      // Refetch CSRF token before submission to ensure sync
+      const csrfRes = await fetch("/api/csrf", { credentials: "include" });
+      const csrfData = await csrfRes.json();
+      const freshCsrf = csrfData.csrf;
+
       const res = await fetch(`/api/boards/${boardId}/cards`, {
         method: "POST",
         credentials: "include",
@@ -53,6 +66,7 @@ export function CreateCardDialog({
           urgency,
           dueAt: dueAt || undefined,
           clientId: clientId || undefined,
+          csrf: freshCsrf,
         }),
       });
 
