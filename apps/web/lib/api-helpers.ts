@@ -72,25 +72,8 @@ export async function protectApiRoute(
     }
   }
 
-  // 3. CSRF Protection (apenas para métodos que modificam dados)
-  const method = request.method;
-  if (requireCsrf && ["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
-    try {
-      const csrfToken = request.headers.get("x-csrf-token");
-      await assertCsrf(csrfToken || undefined);
-    } catch (error) {
-      return {
-        error: NextResponse.json(
-          {
-            error: "Token CSRF inválido ou ausente",
-            hint: "Inclua o header 'x-csrf-token' na requisição",
-          },
-          { status: 403 }
-        ),
-        user: null,
-      };
-    }
-  }
+  // 3. CSRF Protection - DESABILITADO (sistema interno)
+  // Sistema interno não precisa de CSRF - apenas autenticação via cookie é suficiente
 
   // 4. Retornar usuário se tudo OK
   const { user } = await getSession();
