@@ -65,6 +65,67 @@ function getDueDateStatus(dueAt: Date | string | null) {
   return 'ok';
 }
 
+// Função para calcular prioridade do card (maior = mais urgente)
+function getCardPriority(card: Card): number {
+  // Peso da urgência
+  const urgencyWeight = {
+    CRITICAL: 4000,
+    HIGH: 3000,
+    MEDIUM: 2000,
+    LOW: 1000,
+  };
+
+  // Peso do status de vencimento
+  const dueDateStatus = getDueDateStatus(card.dueAt);
+  const dueDateWeight = {
+    overdue: 400,
+    'due-today': 300,
+    'due-soon': 200,
+  };
+
+  let priority = urgencyWeight[card.urgency] || 0;
+
+  if (dueDateStatus && dueDateWeight[dueDateStatus as keyof typeof dueDateWeight]) {
+    priority += dueDateWeight[dueDateStatus as keyof typeof dueDateWeight];
+  }
+
+  // Se tem prazo, adiciona peso extra baseado em quão próximo está
+  if (card.dueAt) {
+    const due = new Date(card.dueAt);
+    const now = new Date();
+    const daysUntil = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Quanto menor o número de dias, maior a prioridade (inversamente proporcional)
+    if (daysUntil < 0) {
+      priority += Math.abs(daysUntil) * 10; // Muito atrasado = muito urgente
+    } else if (daysUntil <= 7) {
+      priority += (7 - daysUntil) * 5; // Vence em breve
+    }
+  }
+
+  return priority;
+}
+
+// Função para ordenar cards por prioridade
+function sortCardsByPriority(cards: Card[]): Card[] {
+  return [...cards].sort((a, b) => {
+    const priorityA = getCardPriority(a);
+    const priorityB = getCardPriority(b);
+    return priorityB - priorityA; // Maior prioridade primeiro
+  });
+}
+
+// Função para obter classes de borda baseadas na urgência
+function getUrgencyBorderClass(urgency: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"): string {
+  const borderClasses = {
+    CRITICAL: "border-l-4 border-l-red-600",
+    HIGH: "border-l-4 border-l-orange-500",
+    MEDIUM: "border-l-4 border-l-yellow-500",
+    LOW: "border-l-4 border-l-blue-500",
+  };
+  return borderClasses[urgency] || "";
+}
+
 export function DraggableBoard({
   boardId,
   initialColumns,
@@ -72,7 +133,13 @@ export function DraggableBoard({
   boardId: string;
   initialColumns: Column[];
 }) {
-  const [columns, setColumns] = useState(initialColumns);
+  // Ordena os cards inicialmente por prioridade
+  const sortedInitialColumns = initialColumns.map((col) => ({
+    ...col,
+    cards: sortCardsByPriority(col.cards),
+  }));
+
+  const [columns, setColumns] = useState(sortedInitialColumns);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [deleteColumnDialog, setDeleteColumnDialog] = useState<{
     open: boolean;
@@ -264,7 +331,7 @@ export function DraggableBoard({
                                 {...provided.dragHandleProps}
                                 className={`bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition cursor-pointer ${
                                   snapshot.isDragging ? "shadow-lg rotate-2" : ""
-                                }`}
+                                } ${getUrgencyBorderClass(card.urgency)}`}
                                 onClick={() => setSelectedCard(card.id)}
                               >
                                 <h4 className="font-medium mb-2">{card.title}</h4>
