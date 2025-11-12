@@ -13,17 +13,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // Lista de comandos SQL a serem executados
-    const sqlCommands = [
-      // 1. Criar enum NoteScope
-      `DO $$ BEGIN
-        CREATE TYPE "NoteScope" AS ENUM ('PERSONAL', 'BOARD', 'CARD');
-      EXCEPTION
-        WHEN duplicate_object THEN null;
-      END $$`,
+    // Verificar se enum já existe
+    const enumExists = await prisma.$queryRaw`
+      SELECT EXISTS (
+        SELECT 1 FROM pg_type WHERE typname = 'NoteScope'
+      )
+    ` as any[];
 
-      // 2. Criar tabela Note
-      `CREATE TABLE IF NOT EXISTS "Note" (
+    let executed = 0;
+
+    // 1. Criar enum NoteScope se não existir
+    if (!enumExists[0]?.exists) {
+      await prisma.$executeRawUnsafe(
+        `CREATE TYPE "NoteScope" AS ENUM ('PERSONAL', 'BOARD', 'CARD')`
+      );
+      executed++;
+    }
+
+    // 2. Criar tabela Note
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Note" (
         "id" TEXT NOT NULL,
         "title" TEXT NOT NULL,
         "content" TEXT NOT NULL,
@@ -37,9 +46,12 @@ export async function POST(req: Request) {
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL,
         CONSTRAINT "Note_pkey" PRIMARY KEY ("id")
-      )`,
+      )
+    `);
+    executed++;
 
-      // 3. Criar índices
+    // 3. Criar índices (um por vez)
+    const indexes = [
       `CREATE INDEX IF NOT EXISTS "Note_userId_idx" ON "Note"("userId")`,
       `CREATE INDEX IF NOT EXISTS "Note_boardId_idx" ON "Note"("boardId")`,
       `CREATE INDEX IF NOT EXISTS "Note_cardId_idx" ON "Note"("cardId")`,
@@ -48,10 +60,8 @@ export async function POST(req: Request) {
       `CREATE INDEX IF NOT EXISTS "Note_createdAt_idx" ON "Note"("createdAt")`,
     ];
 
-    // Executar cada comando separadamente
-    let executed = 0;
-    for (const sql of sqlCommands) {
-      await prisma.$executeRawUnsafe(sql);
+    for (const indexSql of indexes) {
+      await prisma.$executeRawUnsafe(indexSql);
       executed++;
     }
 
