@@ -64,6 +64,12 @@ enum ActivityType {
   DUE_DATE_CHANGED
 }
 
+enum NoteScope {
+  PERSONAL
+  BOARD
+  CARD
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -84,6 +90,7 @@ model User {
   comments        Comment[]
   activities      Activity[]
   attachments     Attachment[]
+  notes           Note[]
 }
 
 model Session {
@@ -112,6 +119,7 @@ model Board {
   labels             Label[]
   checklistTemplates ChecklistTemplate[]
   activities         Activity[]
+  notes              Note[]
 }
 
 model BoardMember {
@@ -167,6 +175,7 @@ model Card {
   labels        CardLabel[]
   attachments   Attachment[]
   activities    Activity[]
+  notes         Note[]
 
   @@index([boardId])
   @@index([columnId, order])
@@ -391,4 +400,34 @@ model Activity {
   @@index([userId])
   @@index([createdAt])
   @@index([type])
+}
+
+// ============================================
+// NOTES SYSTEM
+// ============================================
+
+model Note {
+  id        String    @id @default(cuid())
+  title     String
+  content   String    @db.Text // Rich text content
+  scope     NoteScope // PERSONAL, BOARD, CARD
+  userId    String    // Author
+  boardId   String?   // If BOARD or CARD scope
+  cardId    String?   // If CARD scope
+  isPinned  Boolean   @default(false)
+  tags      String[]  // Array of tags for search
+  color     String?   // Hex color for sticky note
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board Board? @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card  Card?  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([boardId])
+  @@index([cardId])
+  @@index([scope])
+  @@index([isPinned])
+  @@index([createdAt])
 }
