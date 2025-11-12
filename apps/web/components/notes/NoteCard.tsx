@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface NoteCardProps {
   note: {
@@ -43,6 +44,7 @@ const COLORS = {
 
 export function NoteCard({ note, onEdit, onDelete, onPin }: NoteCardProps) {
   const [showActions, setShowActions] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const colorClass = note.color
     ? (COLORS[note.color as keyof typeof COLORS] || COLORS.default)
@@ -129,10 +131,9 @@ export function NoteCard({ note, onEdit, onDelete, onPin }: NoteCardProps) {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                if (confirm(`Deletar nota "${note.title}"?`)) {
-                  onDelete(note.id);
-                }
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteDialogOpen(true);
               }}
               className="p-1.5 bg-white/80 backdrop-blur rounded-lg hover:bg-red-100 transition"
               title="Deletar"
@@ -200,6 +201,21 @@ export function NoteCard({ note, onEdit, onDelete, onPin }: NoteCardProps) {
           <span className="truncate max-w-[120px]">{note.user.name}</span>
         )}
       </div>
+
+      {/* Dialog de confirmação para excluir nota */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={() => {
+          setDeleteDialogOpen(false);
+          onDelete(note.id);
+        }}
+        title="Excluir nota?"
+        description={`Tem certeza que deseja excluir a nota "${note.title}"? Esta ação não pode ser desfeita.`}
+        variant="danger"
+        confirmLabel="Sim, excluir"
+        cancelLabel="Cancelar"
+      />
     </motion.div>
   );
 }

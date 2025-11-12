@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Label {
   id: string;
@@ -56,6 +57,10 @@ export function LabelsManager({
   const [newLabelName, setNewLabelName] = useState("");
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0].value);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [deleteLabelDialog, setDeleteLabelDialog] = useState<{
+    open: boolean;
+    label: Label | null;
+  }>({ open: false, label: null });
 
   useEffect(() => {
     loadBoardLabels();
@@ -159,11 +164,13 @@ export function LabelsManager({
     }
   }
 
-  async function deleteLabel(labelId: string) {
-    if (!confirm("Tem certeza que deseja deletar esta label?")) return;
+  async function confirmDeleteLabel() {
+    if (!deleteLabelDialog.label) return;
+
+    setDeleteLabelDialog({ open: false, label: null });
 
     try {
-      const res = await fetch(`/api/boards/${boardId}/labels/${labelId}`, {
+      const res = await fetch(`/api/boards/${boardId}/labels/${deleteLabelDialog.label.id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -312,7 +319,7 @@ export function LabelsManager({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => deleteLabel(label.id)}
+                        onClick={() => setDeleteLabelDialog({ open: true, label })}
                         className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         Deletar
@@ -453,6 +460,18 @@ export function LabelsManager({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação para excluir label */}
+      <ConfirmDialog
+        open={deleteLabelDialog.open}
+        onClose={() => setDeleteLabelDialog({ open: false, label: null })}
+        onConfirm={confirmDeleteLabel}
+        title="Excluir label?"
+        description={`Tem certeza que deseja excluir a label "${deleteLabelDialog.label?.name}"? Esta ação não pode ser desfeita e a label será removida de todos os cards.`}
+        variant="danger"
+        confirmLabel="Sim, excluir"
+        cancelLabel="Cancelar"
+      />
     </div>
   );
 }

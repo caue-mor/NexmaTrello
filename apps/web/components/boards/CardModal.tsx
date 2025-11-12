@@ -7,6 +7,7 @@ import { CardPerformance } from "./CardPerformance";
 import { AssigneeSelector } from "./AssigneeSelector";
 // import { LabelsManager } from "./LabelsManager"; // TODO: Habilitar quando modelo Label existir
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ChecklistItem {
   id: string;
@@ -80,6 +81,7 @@ export function CardModal({
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [newItemContent, setNewItemContent] = useState<{ [key: string]: string }>({});
   const [newComment, setNewComment] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     loadCard();
@@ -163,8 +165,8 @@ export function CardModal({
     }
   }
 
-  async function deleteCard() {
-    if (!confirm("Tem certeza que deseja deletar este card?")) return;
+  async function confirmDeleteCard() {
+    setDeleteDialogOpen(false);
 
     try {
       const res = await fetch(`/api/boards/${boardId}/cards/${cardId}`, {
@@ -174,7 +176,9 @@ export function CardModal({
 
       if (res.ok) {
         toast.success("Card deletado com sucesso!");
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         const data = await res.json();
 
@@ -443,11 +447,23 @@ export function CardModal({
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Fechar
           </Button>
-          <Button variant="destructive" onClick={deleteCard}>
+          <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
             Deletar Card
           </Button>
         </div>
       </div>
+
+      {/* Dialog de confirmação para excluir card */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={confirmDeleteCard}
+        title="Excluir card?"
+        description={`Tem certeza que deseja excluir o card "${card?.title}"? Esta ação não pode ser desfeita e todos os checklists e comentários serão perdidos.`}
+        variant="danger"
+        confirmLabel="Sim, excluir"
+        cancelLabel="Cancelar"
+      />
     </div>
   );
 }

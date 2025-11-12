@@ -4,18 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function DeleteBoardButton({ boardId, boardTitle }: { boardId: string; boardTitle: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
 
-  async function handleDelete() {
-    if (!showConfirm) {
-      setShowConfirm(true);
-      return;
-    }
-
+  async function confirmDelete() {
+    setShowConfirm(false);
     setIsDeleting(true);
 
     try {
@@ -47,48 +44,37 @@ export function DeleteBoardButton({ boardId, boardTitle }: { boardId: string; bo
         } else {
           toast.error(data.error || "Erro ao excluir board");
         }
-        setShowConfirm(false);
       }
     } catch (err) {
       console.error("Delete board error:", err);
       toast.error("Erro de conexão ao excluir board");
-      setShowConfirm(false);
     } finally {
       setIsDeleting(false);
     }
   }
 
-  if (!showConfirm) {
-    return (
+  return (
+    <>
       <Button
         variant="outline"
         size="sm"
-        onClick={handleDelete}
+        onClick={() => setShowConfirm(true)}
+        disabled={isDeleting}
         className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
       >
-        Excluir Grupo
+        {isDeleting ? "Excluindo..." : "Excluir Grupo"}
       </Button>
-    );
-  }
 
-  return (
-    <div className="flex gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setShowConfirm(false)}
-        disabled={isDeleting}
-      >
-        Cancelar
-      </Button>
-      <Button
-        size="sm"
-        onClick={handleDelete}
-        disabled={isDeleting}
-        className="bg-red-600 hover:bg-red-700 text-white"
-      >
-        {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
-      </Button>
-    </div>
+      <ConfirmDialog
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Excluir board?"
+        description={`Tem certeza que deseja excluir o board "${boardTitle}"? Esta ação não pode ser desfeita e todos os cards, colunas e dados serão perdidos permanentemente.`}
+        variant="danger"
+        confirmLabel="Sim, excluir board"
+        cancelLabel="Cancelar"
+      />
+    </>
   );
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { CreateCardDialog } from "./CreateCardDialog";
 import { CardModal } from "./CardModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 interface Label {
   id: string;
@@ -72,6 +74,15 @@ export function DraggableBoard({
 }) {
   const [columns, setColumns] = useState(initialColumns);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [deleteColumnDialog, setDeleteColumnDialog] = useState<{
+    open: boolean;
+    columnId: string | null;
+    columnTitle: string | null;
+  }>({
+    open: false,
+    columnId: null,
+    columnTitle: null,
+  });
 
   async function handleDragEnd(result: DropResult) {
     const { source, destination, draggableId } = result;
@@ -140,31 +151,44 @@ export function DraggableBoard({
     }
   }
 
-  async function handleDeleteColumn(columnId: string) {
-    if (!confirm("Tem certeza que deseja excluir esta coluna vazia?")) {
-      return;
-    }
+  function openDeleteColumnDialog(columnId: string, columnTitle: string) {
+    setDeleteColumnDialog({
+      open: true,
+      columnId,
+      columnTitle,
+    });
+  }
+
+  async function confirmDeleteColumn() {
+    if (!deleteColumnDialog.columnId) return;
 
     try {
-      const response = await fetch(`/api/boards/${boardId}/columns/${columnId}`, {
+      const response = await fetch(`/api/boards/${boardId}/columns/${deleteColumnDialog.columnId}`, {
         method: "DELETE",
         credentials: "include",
       });
 
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error || "Erro ao excluir coluna");
+        toast.error(data.error || "Erro ao excluir coluna");
         return;
       }
 
       // Remove column from state
-      setColumns(columns.filter((col) => col.id !== columnId));
+      setColumns(columns.filter((col) => col.id !== deleteColumnDialog.columnId));
+
+      // Close dialog
+      setDeleteColumnDialog({ open: false, columnId: null, columnTitle: null });
+
+      toast.success("Coluna excluída com sucesso");
 
       // Reload page to sync with server
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (err) {
       console.error("Delete column error:", err);
-      alert("Erro ao excluir coluna");
+      toast.error("Erro ao excluir coluna");
     }
   }
 
@@ -186,7 +210,7 @@ export function DraggableBoard({
                   </span>
                   {column.cards.length === 0 && (
                     <button
-                      onClick={() => handleDeleteColumn(column.id)}
+                      onClick={() => openDeleteColumnDialog(column.id, column.title)}
                       className="p-1 hover:bg-red-100 rounded text-red-600 transition"
                       title="Excluir coluna vazia"
                     >
@@ -459,6 +483,18 @@ export function DraggableBoard({
           }}
         />
       )}
+
+      {/* Dialog de confirmação para excluir coluna */}
+      <ConfirmDialog
+        open={deleteColumnDialog.open}
+        onClose={() => setDeleteColumnDialog({ open: false, columnId: null, columnTitle: null })}
+        onConfirm={confirmDeleteColumn}
+        title="Excluir coluna?"
+        description={`Tem certeza que deseja excluir a coluna "${deleteColumnDialog.columnTitle}"? Esta ação não pode ser desfeita.`}
+        variant="danger"
+        confirmLabel="Sim, excluir"
+        cancelLabel="Cancelar"
+      />
     </>
   );
 }
