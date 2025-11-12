@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CreateBoardDialog } from "@/components/boards/CreateBoardDialog";
+import { TaskAlerts } from "@/components/alerts/TaskAlerts";
+import { groupCardsByStatus } from "@/lib/task-status";
 
 async function getBoards(userId: string) {
   return await prisma.board.findMany({
@@ -26,9 +28,43 @@ async function getBoards(userId: string) {
   });
 }
 
+async function getUserCards(userId: string) {
+  // Busca cards onde o usuário está atribuído ou em boards que ele tem acesso
+  return await prisma.card.findMany({
+    where: {
+      OR: [
+        { assignees: { some: { userId } } },
+        {
+          board: {
+            OR: [
+              { isOrgWide: true },
+              { ownerId: userId },
+              { members: { some: { userId } } },
+            ],
+          },
+        },
+      ],
+      dueAt: { not: null },
+      completedAt: null, // Apenas cards não completos
+    },
+    include: {
+      board: { select: { title: true } },
+      column: { select: { title: true } },
+    },
+    orderBy: { dueAt: "asc" },
+  });
+}
+
 export default async function Dashboard() {
   const user = await requireAuth();
   const boards = await getBoards(user.id);
+  const userCards = await getUserCards(user.id);
+
+  // Agrupa cards por status de alerta
+  const groupedAlerts = groupCardsByStatus(userCards);
+  const overdueCards = groupedAlerts.get("overdue") || [];
+  const dueTodayCards = groupedAlerts.get("due-today") || [];
+  const dueSoonCards = groupedAlerts.get("due-soon") || [];
 
   return (
     <div className="min-h-screen bg-neutral-50 p-6">
@@ -47,6 +83,14 @@ export default async function Dashboard() {
             <CreateBoardDialog />
           </div>
         </div>
+
+        {/* Alertas de Tarefas */}
+        <TaskAlerts
+          overdueCards={overdueCards}
+          dueTodayCards={dueTodayCards}
+          dueSoonCards={dueSoonCards}
+          showBoardInfo={true}
+        />
 
         {boards.length === 0 ? (
           <div className="text-center py-12">

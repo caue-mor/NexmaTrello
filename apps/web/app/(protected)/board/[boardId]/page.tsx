@@ -7,6 +7,8 @@ import { CreateColumnDialog } from "@/components/boards/CreateColumnDialog";
 import { InviteMemberDialog } from "@/components/boards/InviteMemberDialog";
 import { DraggableBoard } from "@/components/boards/DraggableBoard";
 import { DeleteBoardButton } from "@/components/boards/DeleteBoardButton";
+import { TaskAlerts } from "@/components/alerts/TaskAlerts";
+import { groupCardsByStatus } from "@/lib/task-status";
 
 async function getBoard(boardId: string, userId: string) {
   const board = await prisma.board.findFirst({
@@ -110,6 +112,20 @@ export default async function BoardPage({
   const isAdmin = memberRole?.role === "ADMIN";
   const canViewPerformance = isOwner || isAdmin; // Owner = Admin que criou o grupo
 
+  // Processar alertas de tarefas deste board
+  const allBoardCards = board.columns.flatMap((col) =>
+    col.cards.map((card) => ({
+      ...card,
+      board: { title: board.title },
+      column: { title: col.title },
+    }))
+  );
+
+  const groupedAlerts = groupCardsByStatus(allBoardCards);
+  const overdueCards = groupedAlerts.get("overdue") || [];
+  const dueTodayCards = groupedAlerts.get("due-today") || [];
+  const dueSoonCards = groupedAlerts.get("due-soon") || [];
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}
@@ -148,6 +164,14 @@ export default async function BoardPage({
       {/* Board Content */}
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
+          {/* Alertas de Tarefas */}
+          <TaskAlerts
+            overdueCards={overdueCards}
+            dueTodayCards={dueTodayCards}
+            dueSoonCards={dueSoonCards}
+            showBoardInfo={false}
+          />
+
           {board.columns.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-neutral-500 mb-4">
