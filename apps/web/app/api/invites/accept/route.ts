@@ -4,6 +4,12 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
+// Support both token (for email links) and inviteId (for authenticated toast)
+const flexibleAcceptSchema = z.union([
+  inviteAcceptSchema,
+  z.object({ inviteId: z.string() }),
+]);
+
 export async function POST(req: Request) {
   try {
     const { user } = await getSession();
@@ -13,12 +19,12 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { token } = inviteAcceptSchema.parse(body);
+    const parsed = flexibleAcceptSchema.parse(body);
 
-    // Find invite
-    const invite = await prisma.invite.findUnique({
-      where: { token },
-    });
+    // Find invite by token or inviteId
+    const invite = "token" in parsed
+      ? await prisma.invite.findUnique({ where: { token: parsed.token } })
+      : await prisma.invite.findUnique({ where: { id: parsed.inviteId } });
 
     if (!invite || invite.status !== "PENDING" || invite.expiresAt < new Date()) {
       return NextResponse.json(
