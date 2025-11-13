@@ -32,6 +32,7 @@ export async function POST(
 
     const column = await prisma.column.create({
       data: {
+        id: crypto.randomUUID(),
         boardId,
         title: body.title,
         order: nextOrder,

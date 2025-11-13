@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { NotesClient } from "@/components/notes/NotesClient";
 
 export default async function NotesPage() {
-  const { user } = await requireAuth();
+  const user = await requireAuth();
 
   // Buscar notas do usuário
   const notes = await prisma.note.findMany({

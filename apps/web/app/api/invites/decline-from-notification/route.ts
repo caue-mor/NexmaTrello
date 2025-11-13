@@ -29,11 +29,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update invite status to DECLINED
-    await prisma.invite.update({
-      where: { id: invite.id },
-      data: { status: "DECLINED" },
-    });
+    // Update invite status to DECLINED and mark notification as read
+    await prisma.$transaction([
+      prisma.invite.update({
+        where: { id: invite.id },
+        data: { status: "DECLINED" },
+      }),
+      // Mark notification as read
+      prisma.notification.updateMany({
+        where: {
+          userId: user.id,
+          relatedBoardId: data.boardId,
+          type: "INVITE",
+          readAt: null,
+        },
+        data: {
+          readAt: new Date(),
+        },
+      }),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

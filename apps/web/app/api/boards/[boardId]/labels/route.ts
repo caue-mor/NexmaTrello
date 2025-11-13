@@ -85,6 +85,7 @@ export async function POST(
 
     const label = await prisma.label.create({
       data: {
+        id: crypto.randomUUID(),
         boardId,
         name: data.name,
         color: data.color,

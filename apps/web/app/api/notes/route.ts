@@ -127,6 +127,7 @@ export async function POST(req: Request) {
 
     const note = await prisma.note.create({
       data: {
+        id: crypto.randomUUID(),
         title: data.title,
         content: data.content,
         scope: data.scope,
@@ -135,6 +136,7 @@ export async function POST(req: Request) {
         cardId: data.cardId || null,
         color: data.color || null,
         tags: data.tags || [],
+        updatedAt: new Date(),
       },
       include: {
         board: {

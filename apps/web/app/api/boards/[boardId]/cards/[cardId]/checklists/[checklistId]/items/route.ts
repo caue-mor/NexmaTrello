@@ -25,6 +25,7 @@ export async function POST(
 
     const item = await prisma.checklistItem.create({
       data: {
+        id: crypto.randomUUID(),
         checklistId,
         content: data.content,
       },

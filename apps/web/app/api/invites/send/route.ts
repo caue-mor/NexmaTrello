@@ -84,6 +84,7 @@ export async function POST(req: Request) {
     const token = crypto.randomBytes(24).toString("hex");
     const invite = await prisma.invite.create({
       data: {
+        id: crypto.randomUUID(),
         boardId,
         email,
         role,
@@ -107,6 +108,7 @@ export async function POST(req: Request) {
 
       await prisma.notification.create({
         data: {
+          id: crypto.randomUUID(),
           userId: targetUser.id,
           type: "INVITE",
           title: `Convite para ${board?.title || "grupo"}`,

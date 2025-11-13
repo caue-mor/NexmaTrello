@@ -43,6 +43,7 @@ export async function POST(
       // 1. Criar card
       const card = await tx.card.create({
         data: {
+          id: crypto.randomUUID(),
           boardId,
           columnId: data.columnId,
           title: data.title,
@@ -51,6 +52,7 @@ export async function POST(
           dueAt: dueAtDate,
           clientId: data.clientId,
           createdById: user.id,
+          updatedAt: new Date(),
         },
         include: {
           checklists: {
@@ -72,34 +74,44 @@ export async function POST(
         },
       });
 
-      // 2. Se um cliente foi vinculado, criar automaticamente checklist de onboarding
+      // 2. Se um cliente foi vinculado E tem status ONBOARD, criar checklist de onboarding
       if (data.clientId) {
-        const onboardingChecklist = await tx.checklist.create({
-          data: {
-            cardId: card.id,
-            title: "OBJETIVOS - Onboarding Digital de Clientes",
-            items: {
-              create: [
-                { content: "Login e senha Facebook", done: false },
-                { content: "Login e senha Instagram", done: false },
-                { content: "WhatsApp comercial", done: false },
-                { content: "CNPJ", done: false },
-                { content: "Método de pagamento", done: false },
-                {
-                  content:
-                    "Drive do cliente com imagens/vídeos e logomarca",
-                  done: false,
-                },
-              ],
-            },
-          },
-          include: {
-            items: true,
-          },
+        const client = await tx.client.findUnique({
+          where: { id: data.clientId },
+          select: { onboardStatus: true },
         });
 
-        // Adicionar checklist ao card retornado
-        card.checklists.push(onboardingChecklist);
+        // Só cria checklist se o cliente está em processo de ONBOARD
+        if (client && client.onboardStatus === "ONBOARD") {
+          const onboardingChecklist = await tx.checklist.create({
+            data: {
+              id: crypto.randomUUID(),
+              cardId: card.id,
+              title: "OBJETIVOS - Onboarding Digital de Clientes",
+              items: {
+                create: [
+                  { id: crypto.randomUUID(), content: "Login e senha Facebook", done: false },
+                  { id: crypto.randomUUID(), content: "Login e senha Instagram", done: false },
+                  { id: crypto.randomUUID(), content: "WhatsApp comercial", done: false },
+                  { id: crypto.randomUUID(), content: "CNPJ", done: false },
+                  { id: crypto.randomUUID(), content: "Método de pagamento", done: false },
+                  {
+                    id: crypto.randomUUID(),
+                    content:
+                      "Drive do cliente com imagens/vídeos e logomarca",
+                    done: false,
+                  },
+                ],
+              },
+            },
+            include: {
+              items: true,
+            },
+          });
+
+          // Adicionar checklist ao card retornado
+          card.checklists.push(onboardingChecklist);
+        }
       }
 
       // 3. Buscar membros do board para notificações

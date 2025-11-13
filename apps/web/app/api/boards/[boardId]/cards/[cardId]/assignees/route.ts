@@ -82,6 +82,7 @@ export async function POST(
     // Create notification with card title
     await prisma.notification.create({
       data: {
+        id: crypto.randomUUID(),
         userId: targetUser.id,
         type: "ALERT",
         title: "Você foi atribuído a um card",

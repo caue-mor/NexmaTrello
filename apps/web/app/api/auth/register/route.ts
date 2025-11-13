@@ -52,9 +52,11 @@ export async function POST(req: Request) {
     // Create user
     const user = await prisma.user.create({
       data: {
+        id: crypto.randomUUID(),
         email: data.email,
         name: data.name,
         passwordHash,
+        updatedAt: new Date(),
       },
     });
 
@@ -67,6 +69,7 @@ export async function POST(req: Request) {
     if (generalBoard) {
       await prisma.boardMember.create({
         data: {
+          id: crypto.randomUUID(),
           boardId: generalBoard.id,
           userId: user.id,
           role: "MEMBER",

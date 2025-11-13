@@ -17,7 +17,7 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     const body = await req.json();
     const { templateId } = applyTemplateSchema.parse(body);
@@ -68,10 +68,12 @@ export async function POST(
     // Criar a checklist com os items do template
     const checklist = await prisma.checklist.create({
       data: {
+        id: crypto.randomUUID(),
         cardId: params.cardId,
         title: template.name,
         items: {
           create: (template.items as string[]).map((itemContent) => ({
+            id: crypto.randomUUID(),
             content: itemContent,
             done: false,
           })),

@@ -61,10 +61,12 @@ export async function POST(
 
     const template = await prisma.checklistTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         boardId: params.boardId,
         name: data.name,
         description: data.description,
         items: data.items,
+        updatedAt: new Date(),
       },
     });
 

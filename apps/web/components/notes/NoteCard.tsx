@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface NoteCardProps {
@@ -42,7 +42,10 @@ const COLORS = {
   orange: "from-orange-100 to-orange-200 border-orange-300",
 };
 
-export function NoteCard({ note, onEdit, onDelete, onPin }: NoteCardProps) {
+export const NoteCard = forwardRef<HTMLDivElement, NoteCardProps>(function NoteCard(
+  { note, onEdit, onDelete, onPin },
+  ref
+) {
   const [showActions, setShowActions] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -64,6 +67,7 @@ export function NoteCard({ note, onEdit, onDelete, onPin }: NoteCardProps) {
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, scale: 0.8, rotateZ: -5 }}
       animate={{ opacity: 1, scale: 1, rotateZ: 0 }}
@@ -218,4 +222,4 @@ export function NoteCard({ note, onEdit, onDelete, onPin }: NoteCardProps) {
       />
     </motion.div>
   );
-}
+});

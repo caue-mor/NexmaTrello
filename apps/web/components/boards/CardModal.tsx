@@ -8,6 +8,8 @@ import { AssigneeSelector } from "./AssigneeSelector";
 // import { LabelsManager } from "./LabelsManager"; // TODO: Habilitar quando modelo Label existir
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LevelUpModal } from "@/components/gamification/LevelUpModal";
+import { AchievementToast } from "@/components/gamification/AchievementToast";
 
 interface ChecklistItem {
   id: string;
@@ -83,6 +85,10 @@ export function CardModal({
   const [newComment, setNewComment] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [csrf, setCsrf] = useState("");
+
+  // Gamification states
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpData, setLevelUpData] = useState({ level: 0, coins: 0 });
 
   useEffect(() => {
     // Fetch CSRF token
@@ -175,6 +181,46 @@ export function CardModal({
       });
 
       if (res.ok) {
+        const data = await res.json();
+
+        // Check for gamification data
+        if (data.gamification) {
+          // Handle level up
+          if (data.gamification.leveledUp) {
+            setLevelUpData({
+              level: data.gamification.newLevel,
+              coins: data.gamification.coinsEarned || 0,
+            });
+            setShowLevelUp(true);
+          }
+
+          // Handle new achievements
+          if (data.gamification.newAchievements && data.gamification.newAchievements.length > 0) {
+            // Import achievements data to get full details
+            import("@/lib/gamification/achievements").then((mod) => {
+              const ACHIEVEMENTS = mod.ACHIEVEMENTS;
+
+              data.gamification.newAchievements.forEach((achievementId: string) => {
+                const achievement = ACHIEVEMENTS.find((a) => a.id === achievementId);
+                if (achievement) {
+                  toast.custom((t) => (
+                    <AchievementToast achievement={achievement} />
+                  ), {
+                    duration: 5000,
+                  });
+                }
+              });
+            });
+          }
+
+          // Show XP gained toast
+          if (data.gamification.xpGained > 0) {
+            toast.success(`+${data.gamification.xpGained} XP ganho!`, {
+              description: "Continue completando tarefas para subir de nível",
+            });
+          }
+        }
+
         loadCard();
       }
     } catch (err) {
@@ -485,6 +531,14 @@ export function CardModal({
         variant="danger"
         confirmLabel="Sim, excluir"
         cancelLabel="Cancelar"
+      />
+
+      {/* Level Up Modal */}
+      <LevelUpModal
+        open={showLevelUp}
+        onOpenChange={setShowLevelUp}
+        level={levelUpData.level}
+        coins={levelUpData.coins}
       />
     </div>
   );

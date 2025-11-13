@@ -71,14 +71,17 @@ export async function POST(req: Request) {
     const board = await prisma.$transaction(async (tx) => {
       const newBoard = await tx.board.create({
         data: {
+          id: crypto.randomUUID(),
           title,
           ownerId: user.id,
+          updatedAt: new Date(),
         },
       });
 
       // Add creator as OWNER member
       await tx.boardMember.create({
         data: {
+          id: crypto.randomUUID(),
           boardId: newBoard.id,
           userId: user.id,
           role: "OWNER",
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
       // Criar coluna "Finalizado" automaticamente
       await tx.column.create({
         data: {
+          id: crypto.randomUUID(),
           boardId: newBoard.id,
           title: "✅ Finalizado",
           order: 0,

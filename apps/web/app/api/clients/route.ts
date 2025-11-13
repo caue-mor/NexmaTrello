@@ -40,9 +40,12 @@ export async function POST(req: NextRequest) {
 
     const client = await prisma.client.create({
       data: {
+        id: crypto.randomUUID(),
         name: data.name,
         status: data.status || "NORMAL",
         lead: data.lead || 0,
+        lastContact: new Date(),
+        updatedAt: new Date(),
       },
     });
 

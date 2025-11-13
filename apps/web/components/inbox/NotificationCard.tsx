@@ -55,12 +55,14 @@ export function NotificationCard({ notification }: { notification: Notification 
       if (res.ok) {
         if (action === "accept") {
           toast.success("Convite aceito! Você agora faz parte do grupo.");
+          // API já marca notificação como lida
           // Redirecionar para o board
           router.push(`/board/${notification.relatedBoardId}`);
         } else {
           toast.success("Convite recusado.");
-          await markAsRead();
+          // API já marca notificação como lida
           router.refresh();
+          window.location.reload(); // Force reload para atualizar lista
         }
       } else {
         toast.error(data.error || `Erro ao ${action === "accept" ? "aceitar" : "recusar"} convite`);

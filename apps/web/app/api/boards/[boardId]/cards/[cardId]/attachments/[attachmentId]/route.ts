@@ -21,7 +21,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     // Verificar se o card existe e pertence ao board
     const card = await prisma.card.findFirst({
@@ -138,7 +138,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     // Verificar se o card existe e pertence ao board
     const card = await prisma.card.findFirst({

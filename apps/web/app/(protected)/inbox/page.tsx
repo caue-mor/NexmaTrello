@@ -4,7 +4,14 @@ import { NotificationCard } from "@/components/inbox/NotificationCard";
 
 async function getNotifications(userId: string) {
   return await prisma.notification.findMany({
-    where: { userId },
+    where: {
+      userId,
+      // Ocultar convites já processados (lidos)
+      OR: [
+        { type: "ALERT" }, // Sempre mostra alerts
+        { type: "INVITE", readAt: null }, // Só mostra convites não lidos
+      ],
+    },
     orderBy: { createdAt: "desc" },
     take: 50,
   });

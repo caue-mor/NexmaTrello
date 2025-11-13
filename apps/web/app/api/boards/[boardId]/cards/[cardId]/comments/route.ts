@@ -14,7 +14,7 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, "MEMBER");
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     const body = await req.json();
     const data = commentCreateSchema.parse(body);
@@ -31,9 +31,11 @@ export async function POST(
 
     const comment = await prisma.comment.create({
       data: {
+        id: crypto.randomUUID(),
         cardId: params.cardId,
         userId: user.id,
         content: data.content,
+        updatedAt: new Date(),
       },
       include: {
         user: {
@@ -79,7 +81,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, "MEMBER");
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     const comments = await prisma.comment.findMany({
       where: { cardId: params.cardId },

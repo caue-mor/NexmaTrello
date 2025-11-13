@@ -34,7 +34,7 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     const body = await req.json();
     const data = attachmentCreateSchema.parse(body);
@@ -115,12 +115,13 @@ export async function POST(
     // Criar registro no banco
     const attachment = await prisma.attachment.create({
       data: {
+        id: crypto.randomUUID(),
         cardId: params.cardId,
+        userId: user.id,
         fileName: data.fileName,
         fileUrl: finalFileUrl,
         fileSize,
         mimeType: data.mimeType,
-        uploadedBy: user.id,
       },
       include: {
         user: {
@@ -181,7 +182,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     // Verificar se o card existe e pertence ao board
     const card = await prisma.card.findFirst({

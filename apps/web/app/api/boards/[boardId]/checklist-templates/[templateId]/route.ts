@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     const template = await prisma.checklistTemplate.findUnique({
       where: { id: params.templateId },
@@ -59,7 +59,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["MEMBER", "ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["MEMBER", "ADMIN", "OWNER"]);
 
     // Verificar se o template existe e pertence ao board
     const existingTemplate = await prisma.checklistTemplate.findUnique({
@@ -124,7 +124,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth();
-    await assertBoardRole(user.id, params.boardId, ["ADMIN", "OWNER"]);
+    await assertBoardRole(params.boardId, user.id, ["ADMIN", "OWNER"]);
 
     // Verificar se o template existe e pertence ao board
     const existingTemplate = await prisma.checklistTemplate.findUnique({

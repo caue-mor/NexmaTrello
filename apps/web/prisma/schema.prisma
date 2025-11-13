@@ -7,42 +7,363 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  OWNER
-  ADMIN
-  MEMBER
+model Activity {
+  id        String       @id
+  boardId   String
+  cardId    String?
+  userId    String
+  clientId  String?
+  type      ActivityType
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  board     Board        @relation("ActivityToBoard", fields: [boardId], references: [id], onDelete: Cascade)
+  card      Card?        @relation("ActivityToCard", fields: [cardId], references: [id], onDelete: Cascade)
+  client    Client?      @relation("ActivityToClient", fields: [clientId], references: [id], onDelete: Cascade)
+  user      User         @relation("ActivityToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@index([cardId])
+  @@index([clientId])
+  @@index([createdAt])
+  @@index([userId])
 }
 
-enum Urgency {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
+model Attachment {
+  id        String   @id
+  cardId    String
+  userId    String
+  fileName  String
+  fileUrl   String
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime @default(now())
+  card      Card     @relation("AttachmentToCard", fields: [cardId], references: [id], onDelete: Cascade)
+  user      User     @relation("AttachmentToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+  @@index([userId])
 }
 
-enum ClientStatus {
-  NORMAL
-  NEUTRO
-  URGENTE
-  EMERGENCIA
+model Board {
+  id                String              @id
+  title             String
+  isOrgWide         Boolean             @default(false)
+  ownerId           String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  activities        Activity[]          @relation("ActivityToBoard")
+  owner             User                @relation("UserOwnedBoards", fields: [ownerId], references: [id])
+  members           BoardMember[]       @relation("BoardToMember")
+  cards             Card[]              @relation("BoardToCard")
+  columns           Column[]            @relation("BoardToColumn")
+  checklistTemplates ChecklistTemplate[] @relation("ChecklistTemplateToBoard")
+  invites           Invite[]            @relation("InviteToBoard")
+  labels            Label[]             @relation("LabelToBoard")
+  notes             Note[]              @relation("NoteToBoard")
 }
 
-enum OnboardStatus {
-  ONBOARD
-  ATIVO
-  INATIVO
+model BoardMember {
+  id       String   @id
+  boardId  String
+  userId   String
+  role     Role     @default(MEMBER)
+  joinedAt DateTime @default(now())
+  board    Board    @relation("BoardToMember", fields: [boardId], references: [id], onDelete: Cascade)
+  user     User     @relation("UserBoardMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
 }
 
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
+model Card {
+  id           String         @id
+  boardId      String
+  columnId     String
+  title        String
+  description  String?
+  urgency      Urgency        @default(MEDIUM)
+  order        Int            @default(0)
+  createdById  String
+  clientId     String?
+  dueAt        DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  activities   Activity[]     @relation("ActivityToCard")
+  attachments  Attachment[]   @relation("AttachmentToCard")
+  board        Board          @relation("BoardToCard", fields: [boardId], references: [id], onDelete: Cascade)
+  client       Client?        @relation("ClientToCard", fields: [clientId], references: [id])
+  column       Column         @relation("ColumnToCard", fields: [columnId], references: [id], onDelete: Cascade)
+  createdBy    User           @relation("CardCreator", fields: [createdById], references: [id])
+  assignees    CardAssignee[] @relation("CardToAssignee")
+  labels       CardLabel[]    @relation("CardToLabel")
+  checklists   Checklist[]    @relation("CardToChecklist")
+  comments     Comment[]      @relation("CardToComment")
+  notes        Note[]         @relation("NoteToCard")
+  notifications Notification[] @relation("NotificationToCard")
+
+  @@index([boardId])
+  @@index([clientId])
+  @@index([columnId, order])
+  @@index([completedAt])
+  @@index([createdById])
+  @@index([dueAt])
+  @@index([urgency])
 }
 
-enum NotificationType {
-  INVITE
-  ALERT
+model CardAssignee {
+  cardId     String
+  userId     String
+  assignedAt DateTime @default(now())
+  card       Card     @relation("CardToAssignee", fields: [cardId], references: [id], onDelete: Cascade)
+  user       User     @relation("UserCardAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, userId])
+  @@index([cardId])
+  @@index([userId])
+}
+
+model CardLabel {
+  cardId  String
+  labelId String
+  card    Card   @relation("CardToLabel", fields: [cardId], references: [id], onDelete: Cascade)
+  label   Label  @relation("CardToLabel", fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
+  @@index([cardId])
+  @@index([labelId])
+}
+
+model Checklist {
+  id            String          @id
+  cardId        String
+  title         String
+  card          Card            @relation("CardToChecklist", fields: [cardId], references: [id], onDelete: Cascade)
+  items         ChecklistItem[] @relation("ChecklistToItem")
+
+  @@index([cardId])
+}
+
+model ChecklistItem {
+  id          String    @id
+  checklistId String
+  content     String
+  done        Boolean   @default(false)
+  doneAt      DateTime?
+  checklist   Checklist @relation("ChecklistToItem", fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId])
+  @@index([doneAt])
+  @@index([done])
+}
+
+model ChecklistTemplate {
+  id          String   @id
+  boardId     String
+  name        String
+  description String?
+  items       Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  board       Board    @relation("ChecklistTemplateToBoard", fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
+
+model Client {
+  id            String        @id
+  name          String
+  status        ClientStatus  @default(NORMAL)
+  onboardStatus OnboardStatus @default(ONBOARD)
+  lead          Int           @default(0)
+  phone         String?
+  email         String?
+  document      String?
+  sector        String?
+  region        String?
+  notes         String?
+  firstContact  DateTime?     @default(now())
+  lastContact   DateTime
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  activities    Activity[]    @relation("ActivityToClient")
+  cards         Card[]        @relation("ClientToCard")
+
+  @@index([createdAt])
+  @@index([email])
+  @@index([onboardStatus])
+  @@index([status])
+}
+
+model Column {
+  id      String @id
+  boardId String
+  title   String
+  order   Int
+  cards   Card[] @relation("ColumnToCard")
+  board   Board  @relation("BoardToColumn", fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
+
+model Comment {
+  id        String   @id
+  cardId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  card      Card     @relation("CardToComment", fields: [cardId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+  @@index([userId])
+}
+
+model Invite {
+  id           String       @id
+  boardId      String
+  email        String
+  token        String       @unique
+  status       InviteStatus @default(PENDING)
+  role         Role         @default(MEMBER)
+  invitedById  String
+  expiresAt    DateTime
+  createdAt    DateTime     @default(now())
+  acceptedById String?
+  acceptedBy   User?        @relation("Invite_acceptedByIdToUser", fields: [acceptedById], references: [id])
+  board        Board        @relation("InviteToBoard", fields: [boardId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("Invite_invitedByIdToUser", fields: [invitedById], references: [id])
+
+  @@index([boardId])
+  @@index([email])
+  @@index([token])
+}
+
+model Label {
+  id        String      @id
+  boardId   String
+  name      String
+  color     String
+  cardLabels CardLabel[] @relation("CardToLabel")
+  board     Board       @relation("LabelToBoard", fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
+
+model Note {
+  id        String    @id
+  title     String
+  content   String
+  scope     NoteScope
+  userId    String
+  boardId   String?
+  cardId    String?
+  isPinned  Boolean   @default(false)
+  tags      String[]
+  color     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  board     Board?    @relation("NoteToBoard", fields: [boardId], references: [id], onDelete: Cascade)
+  card      Card?     @relation("NoteToCard", fields: [cardId], references: [id], onDelete: Cascade)
+  user      User      @relation("NoteToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@index([cardId])
+  @@index([createdAt])
+  @@index([isPinned])
+  @@index([scope])
+  @@index([userId])
+}
+
+model Notification {
+  id             String           @id
+  userId         String
+  type           NotificationType
+  title          String
+  message        String
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  relatedCardId  String?
+  relatedBoardId String?
+  card           Card?            @relation("NotificationToCard", fields: [relatedCardId], references: [id], onDelete: Cascade)
+  user           User             @relation("NotificationToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([relatedCardId])
+  @@index([userId])
+  @@index([userId, readAt])
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id                               String            @id
+  email                            String            @unique
+  name                             String?
+  passwordHash                     String
+  isActive                         Boolean           @default(true)
+  createdAt                        DateTime          @default(now())
+  updatedAt                        DateTime
+  activities                       Activity[]        @relation("ActivityToUser")
+  attachments                      Attachment[]      @relation("AttachmentToUser")
+  ownedBoards                      Board[]           @relation("UserOwnedBoards")
+  boardMemberships                 BoardMember[]     @relation("UserBoardMemberships")
+  createdCards                     Card[]            @relation("CardCreator")
+  cardAssignments                  CardAssignee[]    @relation("UserCardAssignments")
+  comments                         Comment[]         @relation("UserComments")
+  Invite_Invite_acceptedByIdToUser Invite[]          @relation("Invite_acceptedByIdToUser")
+  Invite_Invite_invitedByIdToUser  Invite[]          @relation("Invite_invitedByIdToUser")
+  notes                            Note[]            @relation("NoteToUser")
+  notifications                    Notification[]    @relation("NotificationToUser")
+  Session                          Session[]
+  achievements                     UserAchievement[] @relation("AchievementToUser")
+  stats                            UserStats?        @relation("StatsToUser")
+}
+
+model UserAchievement {
+  id             String    @id
+  userId         String
+  achievementKey String
+  unlockedAt     DateTime  @default(now())
+  claimedAt      DateTime?
+  user           User      @relation("AchievementToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementKey])
+  @@index([achievementKey])
+  @@index([userId])
+}
+
+model UserStats {
+  id                     String    @id
+  userId                 String    @unique
+  level                  Int       @default(1)
+  xp                     Int       @default(0)
+  coins                  Int       @default(0)
+  currentStreak          Int       @default(0)
+  longestStreak          Int       @default(0)
+  lastActiveDate         DateTime?
+  tasksCompleted         Int       @default(0)
+  tasksCompletedOnTime   Int       @default(0)
+  cardsCompleted         Int       @default(0)
+  cardsCompletedOnTime   Int       @default(0)
+  criticalCardsCompleted Int       @default(0)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @default(now())
+  user                   User      @relation("StatsToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([level])
+  @@index([userId])
+  @@index([xp])
 }
 
 enum ActivityType {
@@ -64,370 +385,46 @@ enum ActivityType {
   DUE_DATE_CHANGED
 }
 
+enum ClientStatus {
+  NORMAL
+  NEUTRO
+  URGENTE
+  EMERGENCIA
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
 enum NoteScope {
   PERSONAL
   BOARD
   CARD
 }
 
-model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  passwordHash  String
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  sessions        Session[]
-  boardsOwned     Board[]        @relation("BoardsOwned")
-  memberships     BoardMember[]
-  notifications   Notification[]
-  cardsCreated    Card[]         @relation("CardCreator")
-  cardAssignees   CardAssignee[]
-  invitesSent     Invite[]       @relation("InvitedBy")
-  invitesAccepted Invite[]       @relation("AcceptedBy")
-  comments        Comment[]
-  activities      Activity[]
-  attachments     Attachment[]
-  notes           Note[]
+enum NotificationType {
+  INVITE
+  ALERT
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([userId])
+enum OnboardStatus {
+  ONBOARD
+  ATIVO
+  INATIVO
 }
 
-model Board {
-  id        String        @id @default(cuid())
-  title     String
-  isOrgWide Boolean       @default(false)
-  ownerId   String
-  owner     User          @relation("BoardsOwned", fields: [ownerId], references: [id])
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  members            BoardMember[]
-  columns            Column[]
-  cards              Card[]
-  invites            Invite[]
-  labels             Label[]
-  checklistTemplates ChecklistTemplate[]
-  activities         Activity[]
-  notes              Note[]
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
-model BoardMember {
-  id       String   @id @default(cuid())
-  boardId  String
-  userId   String
-  role     Role     @default(MEMBER)
-  joinedAt DateTime @default(now())
-
-  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([boardId, userId])
-  @@index([boardId])
-  @@index([userId])
-}
-
-model Column {
-  id      String @id @default(cuid())
-  boardId String
-  title   String
-  order   Int
-
-  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  cards Card[]
-
-  @@index([boardId])
-}
-
-model Card {
-  id          String    @id @default(cuid())
-  boardId     String
-  columnId    String
-  title       String
-  description String?
-  urgency     Urgency   @default(MEDIUM)
-  order       Int       @default(0)
-  createdById String
-  clientId    String?
-  dueAt       DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  board         Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  column        Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  createdBy     User            @relation("CardCreator", fields: [createdById], references: [id])
-  client        Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  checklists    Checklist[]
-  assignees     CardAssignee[]
-  comments      Comment[]
-  notifications Notification[]
-  labels        CardLabel[]
-  attachments   Attachment[]
-  activities    Activity[]
-  notes         Note[]
-
-  @@index([boardId])
-  @@index([columnId, order])
-  @@index([createdById])
-  @@index([clientId])
-  @@index([dueAt])
-  @@index([completedAt])
-  @@index([urgency])
-}
-
-model Checklist {
-  id     String @id @default(cuid())
-  cardId String
-  title  String
-
-  card  Card            @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  items ChecklistItem[]
-
-  @@index([cardId])
-}
-
-model ChecklistItem {
-  id          String    @id @default(cuid())
-  checklistId String
-  content     String
-  done        Boolean   @default(false)
-  doneAt      DateTime?
-
-  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-
-  @@index([checklistId])
-  @@index([done])
-  @@index([doneAt])
-}
-
-model CardAssignee {
-  cardId     String
-  userId     String
-  assignedAt DateTime @default(now())
-
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([cardId, userId])
-  @@index([cardId])
-  @@index([userId])
-}
-
-model Invite {
-  id           String       @id @default(cuid())
-  boardId      String
-  email        String
-  token        String       @unique
-  status       InviteStatus @default(PENDING)
-  role         Role         @default(MEMBER)
-  invitedById  String
-  expiresAt    DateTime
-  createdAt    DateTime     @default(now())
-  acceptedById String?
-
-  board      Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  invitedBy  User   @relation("InvitedBy", fields: [invitedById], references: [id])
-  acceptedBy User?  @relation("AcceptedBy", fields: [acceptedById], references: [id])
-
-  @@index([boardId])
-  @@index([email])
-  @@index([token])
-}
-
-model Notification {
-  id             String           @id @default(cuid())
-  userId         String
-  type           NotificationType
-  title          String
-  message        String
-  readAt         DateTime?
-  createdAt      DateTime         @default(now())
-  relatedCardId  String?
-  relatedBoardId String?
-
-  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  relatedCard Card? @relation(fields: [relatedCardId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([userId, readAt])
-  @@index([relatedCardId])
-}
-
-model Comment {
-  id        String   @id @default(cuid())
-  cardId    String
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([cardId])
-  @@index([userId])
-}
-
-model Client {
-  id            String        @id @default(cuid())
-  name          String
-  status        ClientStatus  @default(NORMAL)
-  onboardStatus OnboardStatus @default(ONBOARD)
-  lead          Int           @default(0)
-  phone         String?
-  email         String?
-  document      String?       // CNPJ/CPF
-  sector        String?
-  region        String?
-  notes         String?
-  firstContact  DateTime?     @default(now())
-  lastContact   DateTime?     @updatedAt
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  cards      Card[]
-  activities Activity[]
-
-  @@index([status])
-  @@index([onboardStatus])
-  @@index([createdAt])
-  @@index([email])
-}
-
-// ============================================
-// LABELS (TAGS) SYSTEM
-// ============================================
-
-model Label {
-  id      String @id @default(cuid())
-  boardId String
-  name    String
-  color   String // hex color code
-  order   Int    @default(0)
-
-  board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  cards CardLabel[]
-
-  @@unique([boardId, name])
-  @@index([boardId])
-}
-
-model CardLabel {
-  cardId  String
-  labelId String
-
-  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
-
-  @@id([cardId, labelId])
-  @@index([cardId])
-  @@index([labelId])
-}
-
-// ============================================
-// ATTACHMENTS SYSTEM
-// ============================================
-
-model Attachment {
-  id         String   @id @default(cuid())
-  cardId     String
-  fileName   String
-  fileUrl    String
-  fileSize   Int      // bytes
-  mimeType   String
-  uploadedBy String
-  createdAt  DateTime @default(now())
-
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [uploadedBy], references: [id])
-
-  @@index([cardId])
-  @@index([uploadedBy])
-}
-
-// ============================================
-// CHECKLIST TEMPLATES
-// ============================================
-
-model ChecklistTemplate {
-  id          String   @id @default(cuid())
-  boardId     String
-  name        String
-  description String?
-  items       Json     // Array of strings: ["Step 1", "Step 2", ...]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-
-  @@index([boardId])
-}
-
-// ============================================
-// ACTIVITY LOG (AUDIT TRAIL)
-// ============================================
-
-model Activity {
-  id        String       @id @default(cuid())
-  boardId   String
-  cardId    String?
-  clientId  String?
-  userId    String
-  type      ActivityType
-  metadata  Json?        // Flexible data: old/new values, affected fields, etc
-  createdAt DateTime     @default(now())
-
-  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  card   Card?   @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  user   User    @relation(fields: [userId], references: [id])
-
-  @@index([boardId])
-  @@index([cardId])
-  @@index([clientId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([type])
-}
-
-// ============================================
-// NOTES SYSTEM
-// ============================================
-
-model Note {
-  id        String    @id @default(cuid())
-  title     String
-  content   String    @db.Text // Rich text content
-  scope     NoteScope // PERSONAL, BOARD, CARD
-  userId    String    // Author
-  boardId   String?   // If BOARD or CARD scope
-  cardId    String?   // If CARD scope
-  isPinned  Boolean   @default(false)
-  tags      String[]  // Array of tags for search
-  color     String?   // Hex color for sticky note
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  board Board? @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  card  Card?  @relation(fields: [cardId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([boardId])
-  @@index([cardId])
-  @@index([scope])
-  @@index([isPinned])
-  @@index([createdAt])
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }

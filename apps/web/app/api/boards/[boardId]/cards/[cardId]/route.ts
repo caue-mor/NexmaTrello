@@ -165,28 +165,38 @@ export async function PUT(
 
     // Se um cliente foi vinculado pela primeira vez e não tem checklist de onboarding
     if (isAddingClient && !hasOnboardingChecklist) {
-      const onboardingChecklist = await prisma.checklist.create({
-        data: {
-          cardId: card.id,
-          title: "OBJETIVOS - Onboarding Digital de Clientes",
-          items: {
-            create: [
-              { content: "Login e senha Facebook", done: false },
-              { content: "Login e senha Instagram", done: false },
-              { content: "WhatsApp comercial", done: false },
-              { content: "CNPJ", done: false },
-              { content: "Método de pagamento", done: false },
-              { content: "Drive do cliente com imagens/vídeos e logomarca", done: false },
-            ],
-          },
-        },
-        include: {
-          items: true,
-        },
+      // Buscar cliente para verificar status
+      const client = await prisma.client.findUnique({
+        where: { id: data.clientId },
+        select: { onboardStatus: true },
       });
 
-      // Adicionar checklist ao card retornado
-      card.checklists.push(onboardingChecklist);
+      // Só cria checklist se o cliente está em processo de ONBOARD
+      if (client && client.onboardStatus === "ONBOARD") {
+        const onboardingChecklist = await prisma.checklist.create({
+          data: {
+            id: crypto.randomUUID(),
+            cardId: card.id,
+            title: "OBJETIVOS - Onboarding Digital de Clientes",
+            items: {
+              create: [
+                { id: crypto.randomUUID(), content: "Login e senha Facebook", done: false },
+                { id: crypto.randomUUID(), content: "Login e senha Instagram", done: false },
+                { id: crypto.randomUUID(), content: "WhatsApp comercial", done: false },
+                { id: crypto.randomUUID(), content: "CNPJ", done: false },
+                { id: crypto.randomUUID(), content: "Método de pagamento", done: false },
+                { id: crypto.randomUUID(), content: "Drive do cliente com imagens/vídeos e logomarca", done: false },
+              ],
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
+
+        // Adicionar checklist ao card retornado
+        card.checklists.push(onboardingChecklist);
+      }
     }
 
     return NextResponse.json({ card });

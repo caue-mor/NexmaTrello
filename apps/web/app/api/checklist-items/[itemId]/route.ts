@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { withApiProtection } from "@/lib/api-helpers";
+import { awardXpForChecklistItem } from "@/lib/gamification/award-xp";
 
 export async function PUT(
   req: Request,
@@ -136,13 +137,32 @@ export async function PUT(
           }
         }
 
-        return { item, cardMoved };
+        return { item, cardMoved, allCompleted };
       }
 
-      return { item, cardMoved: false };
+      return { item, cardMoved: false, allCompleted: false };
     });
 
-    return NextResponse.json(result);
+    // 8. Award XP for completing checklist item (outside transaction to avoid blocking)
+    let gamification = null;
+    if (body.done && !itemBefore.done) {
+      try {
+        gamification = await awardXpForChecklistItem(
+          user.id,
+          card,
+          result.allCompleted
+        );
+      } catch (error) {
+        console.error("Error awarding XP:", error);
+        // Don't fail the request if XP award fails
+      }
+    }
+
+    return NextResponse.json({
+      item: result.item,
+      cardMoved: result.cardMoved,
+      gamification,
+    });
   } catch (err) {
     console.error("Toggle checklist item error:", err);
     return NextResponse.json(

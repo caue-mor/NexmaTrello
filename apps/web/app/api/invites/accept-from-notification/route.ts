@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       // Create board membership with role from invite
       prisma.boardMember.create({
         data: {
+          id: crypto.randomUUID(),
           boardId: data.boardId,
           userId: user.id,
           role: invite.role,
@@ -60,6 +61,18 @@ export async function POST(req: NextRequest) {
         data: {
           status: "ACCEPTED",
           acceptedById: user.id,
+        },
+      }),
+      // Mark notification as read
+      prisma.notification.updateMany({
+        where: {
+          userId: user.id,
+          relatedBoardId: data.boardId,
+          type: "INVITE",
+          readAt: null,
+        },
+        data: {
+          readAt: new Date(),
         },
       }),
     ]);
