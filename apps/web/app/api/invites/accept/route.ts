@@ -53,9 +53,10 @@ export async function POST(req: Request) {
         },
         update: {},
         create: {
+          id: crypto.randomUUID(),
           boardId: invite.boardId,
           userId: user.id,
-          role: "MEMBER",
+          role: invite.role, // Usar role do convite em vez de hardcoded MEMBER
         },
       }),
       prisma.invite.update({

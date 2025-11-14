@@ -56,6 +56,7 @@ export async function POST(
 
     // Criar notificação para cada membro
     const notifications = boardMembers.map((member) => ({
+      id: crypto.randomUUID(),
       userId: member.userId,
       type: "ALERT" as const,
       title: "Nova coluna criada",

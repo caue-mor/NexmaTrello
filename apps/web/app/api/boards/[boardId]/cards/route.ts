@@ -148,6 +148,7 @@ export async function POST(
       // 5. Criar notificações para membros
       if (boardMembers.length > 0) {
         const notifications = boardMembers.map((member) => ({
+          id: crypto.randomUUID(),
           userId: member.userId,
           type: "ALERT" as const,
           title: "Novo card criado",
