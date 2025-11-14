@@ -74,12 +74,9 @@ export async function awardXpForChecklistItem(
     };
   }
 
-  // 4. Registrar contribuição (incrementar contagem de tarefas marcadas)
-  await trackTaskContribution(card.id, userId);
+  console.log(`✅ User ${userId} elegível para XP no card ${card.id}`);
 
-  console.log(`✅ User ${userId} marcou tarefa no card ${card.id}`);
-
-  // 5. Se card NÃO completou ainda, retornar sem dar XP (XP só no final)
+  // 4. Se card NÃO completou ainda, retornar sem dar XP (XP só no final)
   if (!isCardComplete) {
     return {
       xpGained: 0,
@@ -95,11 +92,11 @@ export async function awardXpForChecklistItem(
     };
   }
 
-  // 6. Card COMPLETOU! Distribuir XP proporcionalmente para TODOS os assignees
+  // 5. Card COMPLETOU! Distribuir XP proporcionalmente para TODOS os assignees
   console.log(`🎉 Card ${card.id} completado! Distribuindo XP para assignees...`);
   await distributeXpToAssignees(card, eligibleUserIds);
 
-  // 7. Retornar resultado para o usuário atual
+  // 6. Retornar resultado para o usuário atual
   const userContribution = await prisma.taskContribution.findUnique({
     where: {
       cardId_userId: {
@@ -224,8 +221,9 @@ export async function getUserStatsWithAchievements(userId: string) {
 
 /**
  * Track user contribution to a card (increment task count)
+ * EXPORT para ser usada em testes e endpoint
  */
-async function trackTaskContribution(cardId: string, userId: string): Promise<void> {
+export async function trackTaskContribution(cardId: string, userId: string): Promise<void> {
   // Contar total de tarefas do card
   const card = await prisma.card.findUnique({
     where: { id: cardId },
@@ -291,8 +289,36 @@ async function distributeXpToAssignees(
   const totalTasks = card.checklists.reduce((sum, checklist) => sum + checklist.items.length, 0);
 
   for (const userId of assigneeUserIds) {
-    const contribution = contributions.find(c => c.userId === userId);
-    const tasksMarked = contribution?.tasksMarked || 0;
+    // Buscar contribution OU contar tarefas marcadas diretamente do banco
+    let contribution = contributions.find(c => c.userId === userId);
+
+    // Se não tem contribution, verificar quantas tarefas este user marcou (doneBy)
+    if (!contribution) {
+      const tasksMarkedByUser = await prisma.checklistItem.count({
+        where: {
+          checklist: {
+            cardId: card.id,
+          },
+          doneBy: userId,
+          done: true,
+        },
+      });
+
+      // Criar contribution com os valores corretos
+      contribution = await prisma.taskContribution.create({
+        data: {
+          cardId: card.id,
+          userId,
+          tasksMarked: tasksMarkedByUser,
+          totalTasks,
+          contributionPercent: 0, // Será calculado abaixo
+          xpEarned: 0,
+          coinsEarned: 0,
+        },
+      });
+    }
+
+    const tasksMarked = contribution.tasksMarked;
 
     // % de contribuição = tarefas marcadas / total de tarefas
     const contributionPercent = totalTasks > 0 ? (tasksMarked / totalTasks) : (1 / assigneeUserIds.length);

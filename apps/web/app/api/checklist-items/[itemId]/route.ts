@@ -62,7 +62,41 @@ export async function PUT(
         },
       });
 
-      // 2. Se marcou como feito, criar notificações e verificar conclusão
+      // 2. Track task contribution (increment counter)
+      if (body.done && !itemBefore.done) {
+        // Contar total de tarefas do card
+        const totalTasks = card.checklists.reduce(
+          (sum, checklist) => sum + checklist.items.length,
+          0
+        );
+
+        // Upsert contribution (criar ou incrementar)
+        await tx.taskContribution.upsert({
+          where: {
+            cardId_userId: {
+              cardId: card.id,
+              userId: user.id,
+            },
+          },
+          update: {
+            tasksMarked: {
+              increment: 1,
+            },
+            totalTasks,
+          },
+          create: {
+            cardId: card.id,
+            userId: user.id,
+            tasksMarked: 1,
+            totalTasks,
+            contributionPercent: 0, // Será calculado no final
+            xpEarned: 0,
+            coinsEarned: 0,
+          },
+        });
+      }
+
+      // 3. Se marcou como feito, criar notificações e verificar conclusão
       if (body.done && !itemBefore.done) {
         const currentUser = await tx.user.findUnique({
           where: { id: user.id },

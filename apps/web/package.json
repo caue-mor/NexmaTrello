@@ -24,7 +24,8 @@
     "activate:users": "tsx scripts/activate-all-users.ts",
     "test:permissions": "tsx scripts/test-board-permissions.ts",
     "verify:memberships": "tsx scripts/verify-board-memberships.ts",
-    "fix:memberships": "tsx scripts/fix-board-memberships.ts"
+    "fix:memberships": "tsx scripts/fix-board-memberships.ts",
+    "test:proportional": "tsx scripts/test-proportional-xp.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
