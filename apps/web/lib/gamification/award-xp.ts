@@ -38,7 +38,8 @@ interface CardWithChecklists extends Card {
 
 /**
  * Award XP for completing a checklist item
- * REGRA: XP só é dado para usuários atribuídos ao card
+ * REGRA: XP proporcional - quem faz mais ganha mais!
+ * Card completo = 500 XP + 300 COINS dividido proporcionalmente
  */
 export async function awardXpForChecklistItem(
   userId: string,
@@ -73,172 +74,102 @@ export async function awardXpForChecklistItem(
     };
   }
 
-  console.log(`✅ Awarding XP to user ${userId} for card ${card.id}`);
+  // 4. Registrar contribuição (incrementar contagem de tarefas marcadas)
+  await trackTaskContribution(card.id, userId);
 
-  // Ensure user has stats
-  let userStats = await prisma.userStats.findUnique({
+  console.log(`✅ User ${userId} marcou tarefa no card ${card.id}`);
+
+  // 5. Se card NÃO completou ainda, retornar sem dar XP (XP só no final)
+  if (!isCardComplete) {
+    return {
+      xpGained: 0,
+      totalXp: 0,
+      coinsGained: 0,
+      totalCoins: 0,
+      leveledUp: false,
+      newLevel: 1,
+      previousLevel: 1,
+      newAchievements: [],
+      achievementXp: 0,
+      achievementCoins: 0,
+    };
+  }
+
+  // 6. Card COMPLETOU! Distribuir XP proporcionalmente para TODOS os assignees
+  console.log(`🎉 Card ${card.id} completado! Distribuindo XP para assignees...`);
+  await distributeXpToAssignees(card, eligibleUserIds);
+
+  // 7. Retornar resultado para o usuário atual
+  const userContribution = await prisma.taskContribution.findUnique({
+    where: {
+      cardId_userId: {
+        cardId: card.id,
+        userId,
+      },
+    },
+  });
+
+  if (!userContribution) {
+    console.error(`TaskContribution not found for user ${userId} card ${card.id}`);
+    return {
+      xpGained: 0,
+      totalXp: 0,
+      coinsGained: 0,
+      totalCoins: 0,
+      leveledUp: false,
+      newLevel: 1,
+      previousLevel: 1,
+      newAchievements: [],
+      achievementXp: 0,
+      achievementCoins: 0,
+    };
+  }
+
+  console.log(`✅ User ${userId} ganhou ${userContribution.xpEarned} XP, ${userContribution.coinsEarned} coins`);
+
+  // Stats já foram atualizados por distributeXpToAssignees
+  const userStats = await prisma.userStats.findUnique({
     where: { userId },
   });
 
   if (!userStats) {
-    userStats = await prisma.userStats.create({
-      data: {
-        userId,
-        level: 1,
-        xp: 0,
-        coins: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        tasksCompleted: 0,
-        tasksCompletedOnTime: 0,
-        cardsCompleted: 0,
-        cardsCompletedOnTime: 0,
-        criticalCardsCompleted: 0,
-      },
-    });
+    console.error(`UserStats not found for user ${userId}`);
+    return {
+      xpGained: userContribution.xpEarned,
+      totalXp: userContribution.xpEarned,
+      coinsGained: userContribution.coinsEarned,
+      totalCoins: userContribution.coinsEarned,
+      leveledUp: false,
+      newLevel: 1,
+      previousLevel: 1,
+      newAchievements: [],
+      achievementXp: 0,
+      achievementCoins: 0,
+    };
   }
 
-  // Calculate base XP - 1 XP per checklist item
-  let xpGained = calculateChecklistItemXp();
-  let coinsGained = 0;
+  const xpGained = userContribution.xpEarned;
+  const coinsGained = userContribution.coinsEarned;
   let achievementXp = 0;
   let achievementCoins = 0;
   const newAchievements: string[] = [];
 
-  // Update streak
-  const streakUpdate = updateStreakStats({
-    currentStreak: userStats.currentStreak,
-    longestStreak: userStats.longestStreak,
-    lastActiveDate: userStats.lastActiveDate,
-  });
-
-  // Check for streak milestone
-  const streakMilestone = streakUpdate.streakChanged
-    ? getStreakMilestone(streakUpdate.currentStreak)
-    : null;
-
-  if (streakMilestone && streakMilestone.milestone === streakUpdate.currentStreak) {
-    xpGained += streakMilestone.reward.xp;
-    coinsGained += streakMilestone.reward.coins;
-  }
-
-  // If card is complete, add completion bonus (10% + bônus pontualidade + bônus crítico)
-  if (isCardComplete) {
-    // Conta todas as tarefas do card
-    const totalTasks = card.checklists.reduce((sum, checklist) => sum + checklist.items.length, 0);
-
-    const cardXp = calculateCardCompletionXp(totalTasks, {
-      urgency: card.urgency as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-      dueAt: card.dueAt,
-      completedAt: new Date(), // Card está sendo completo agora
-    });
-    xpGained += cardXp;
-  }
-
-  // Calculate coins from XP
-  coinsGained += calculateCoinsFromXp(xpGained);
-
-  // Prepare updated stats
-  const tasksCompleted = userStats.tasksCompleted + 1;
-  const tasksCompletedOnTime = card.dueAt && (!card.completedAt || card.completedAt <= card.dueAt)
-    ? userStats.tasksCompletedOnTime + 1
-    : userStats.tasksCompletedOnTime;
-
-  const cardsCompleted = isCardComplete
-    ? userStats.cardsCompleted + 1
-    : userStats.cardsCompleted;
-
-  const cardsCompletedOnTime = isCardComplete && card.dueAt && card.completedAt && card.completedAt <= card.dueAt
-    ? userStats.cardsCompletedOnTime + 1
-    : userStats.cardsCompletedOnTime;
-
-  const criticalCardsCompleted = isCardComplete && card.urgency === 'CRITICAL'
-    ? userStats.criticalCardsCompleted + 1
-    : userStats.criticalCardsCompleted;
-
-  // Check for new achievements
-  const currentAchievements = await prisma.userAchievement.findMany({
-    where: { userId },
-    select: { achievementKey: true },
-  });
-
-  const achievementKeys = currentAchievements.map(a => a.achievementKey);
-
-  const stats = {
-    tasksCompleted,
-    tasksCompletedOnTime,
-    cardsCompleted,
-    cardsCompletedOnTime,
-    criticalCardsCompleted,
-    currentStreak: streakUpdate.currentStreak,
-    longestStreak: streakUpdate.longestStreak,
-    level: userStats.level,
-  };
-
-  const unlockedAchievements = checkUnlockedAchievements(stats, achievementKeys);
-
-  // Award achievement XP and coins
-  for (const achievement of unlockedAchievements) {
-    newAchievements.push(achievement.key);
-    achievementXp += achievement.xpReward;
-    achievementCoins += achievement.coinsReward || 0;
-  }
-
-  // Total XP and coins
-  const totalXpGained = xpGained + achievementXp;
-  const totalCoinsGained = coinsGained + achievementCoins;
-
-  // Calculate new level
-  const newTotalXp = userStats.xp + totalXpGained;
-  const newLevel = getLevelFromXp(newTotalXp);
-  const leveledUp = newLevel > userStats.level;
-
-  // Update user stats
-  const updatedStats = await prisma.userStats.update({
-    where: { userId },
-    data: {
-      xp: newTotalXp,
-      coins: userStats.coins + totalCoinsGained,
-      level: newLevel,
-      currentStreak: streakUpdate.currentStreak,
-      longestStreak: streakUpdate.longestStreak,
-      lastActiveDate: streakUpdate.lastActiveDate,
-      tasksCompleted,
-      tasksCompletedOnTime,
-      cardsCompleted,
-      cardsCompletedOnTime,
-      criticalCardsCompleted,
-    },
-  });
-
-  // Create achievement records
-  if (newAchievements.length > 0) {
-    await prisma.userAchievement.createMany({
-      data: newAchievements.map(key => ({
-        userId,
-        achievementKey: key,
-      })),
-      skipDuplicates: true,
-    });
-  }
+  // Stats já foram atualizados - apenas retornar valores
+  const previousLevel = getLevelFromXp(userStats.xp - xpGained);
+  const currentLevel = userStats.level;
+  const leveledUp = currentLevel > previousLevel;
 
   return {
-    xpGained: totalXpGained,
-    totalXp: newTotalXp,
-    coinsGained: totalCoinsGained,
-    totalCoins: updatedStats.coins,
+    xpGained,
+    totalXp: userStats.xp,
+    coinsGained,
+    totalCoins: userStats.coins,
     leveledUp,
-    newLevel,
-    previousLevel: userStats.level,
+    newLevel: currentLevel,
+    previousLevel,
     newAchievements,
     achievementXp,
     achievementCoins,
-    streakMilestone: streakMilestone && streakMilestone.milestone === streakUpdate.currentStreak
-      ? {
-          days: streakMilestone.milestone,
-          reward: streakMilestone.reward,
-        }
-      : undefined,
   };
 }
 
@@ -289,4 +220,140 @@ export async function getUserStatsWithAchievements(userId: string) {
       details: getAchievement(a.achievementKey),
     })),
   };
+}
+
+/**
+ * Track user contribution to a card (increment task count)
+ */
+async function trackTaskContribution(cardId: string, userId: string): Promise<void> {
+  // Contar total de tarefas do card
+  const card = await prisma.card.findUnique({
+    where: { id: cardId },
+    include: {
+      checklists: {
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+
+  if (!card) return;
+
+  const totalTasks = card.checklists.reduce((sum, checklist) => sum + checklist.items.length, 0);
+
+  // Upsert contribution (criar ou incrementar)
+  await prisma.taskContribution.upsert({
+    where: {
+      cardId_userId: {
+        cardId,
+        userId,
+      },
+    },
+    update: {
+      tasksMarked: {
+        increment: 1,
+      },
+      totalTasks,
+    },
+    create: {
+      cardId,
+      userId,
+      tasksMarked: 1,
+      totalTasks,
+      contributionPercent: 0, // Será calculado depois
+      xpEarned: 0,
+      coinsEarned: 0,
+    },
+  });
+}
+
+/**
+ * Distribute XP proportionally to all assignees when card is completed
+ * FIXED VALUES: 500 XP + 300 COINS per completed card
+ */
+async function distributeXpToAssignees(
+  card: CardWithChecklists,
+  assigneeUserIds: string[]
+): Promise<void> {
+  const CARD_COMPLETION_XP = 500;
+  const CARD_COMPLETION_COINS = 300;
+
+  // Buscar contribuições de todos os assignees
+  const contributions = await prisma.taskContribution.findMany({
+    where: {
+      cardId: card.id,
+      userId: { in: assigneeUserIds },
+    },
+  });
+
+  // Calcular % de contribuição e XP/coins para cada um
+  const totalTasks = card.checklists.reduce((sum, checklist) => sum + checklist.items.length, 0);
+
+  for (const userId of assigneeUserIds) {
+    const contribution = contributions.find(c => c.userId === userId);
+    const tasksMarked = contribution?.tasksMarked || 0;
+
+    // % de contribuição = tarefas marcadas / total de tarefas
+    const contributionPercent = totalTasks > 0 ? (tasksMarked / totalTasks) : (1 / assigneeUserIds.length);
+
+    // XP proporcional
+    const xpEarned = Math.round(CARD_COMPLETION_XP * contributionPercent);
+    const coinsEarned = Math.round(CARD_COMPLETION_COINS * contributionPercent);
+
+    console.log(`💰 User ${userId}: ${tasksMarked}/${totalTasks} tarefas (${(contributionPercent * 100).toFixed(1)}%) = ${xpEarned} XP, ${coinsEarned} coins`);
+
+    // Atualizar contribution
+    await prisma.taskContribution.upsert({
+      where: {
+        cardId_userId: {
+          cardId: card.id,
+          userId,
+        },
+      },
+      update: {
+        contributionPercent,
+        xpEarned,
+        coinsEarned,
+        totalTasks,
+      },
+      create: {
+        cardId: card.id,
+        userId,
+        tasksMarked: 0,
+        totalTasks,
+        contributionPercent,
+        xpEarned,
+        coinsEarned,
+      },
+    });
+
+    // Atualizar UserStats
+    await ensureUserStats(userId);
+
+    await prisma.userStats.update({
+      where: { userId },
+      data: {
+        xp: { increment: xpEarned },
+        coins: { increment: coinsEarned },
+        cardsCompleted: { increment: 1 },
+        tasksCompleted: { increment: tasksMarked },
+      },
+    });
+
+    // Recalcular level
+    const updatedStats = await prisma.userStats.findUnique({
+      where: { userId },
+    });
+
+    if (updatedStats) {
+      const newLevel = getLevelFromXp(updatedStats.xp);
+      if (newLevel !== updatedStats.level) {
+        await prisma.userStats.update({
+          where: { userId },
+          data: { level: newLevel },
+        });
+      }
+    }
+  }
 }

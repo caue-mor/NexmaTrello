@@ -58,6 +58,7 @@ export async function PUT(
         data: {
           done: body.done,
           doneAt: body.done ? new Date() : null,
+          doneBy: body.done ? user.id : null, // Track who marked this task
         },
       });
 
@@ -79,6 +80,7 @@ export async function PUT(
         // 3. Criar notificações de tarefa completada
         if (boardMembers.length > 0) {
           const notifications = boardMembers.map((member) => ({
+            id: crypto.randomUUID(),
             userId: member.userId,
             type: "ALERT" as const,
             title: "Tarefa completada",
@@ -122,6 +124,7 @@ export async function PUT(
             // 7. Notificar todos sobre a conclusão do card
             if (boardMembers.length > 0) {
               const completionNotifications = boardMembers.map((member) => ({
+                id: crypto.randomUUID(),
                 userId: member.userId,
                 type: "ALERT" as const,
                 title: "Card finalizado! 🎉",

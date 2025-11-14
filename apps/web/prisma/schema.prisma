@@ -99,9 +99,10 @@ model Card {
   assignees    CardAssignee[] @relation("CardToAssignee")
   labels       CardLabel[]    @relation("CardToLabel")
   checklists   Checklist[]    @relation("CardToChecklist")
-  comments     Comment[]      @relation("CardToComment")
-  notes        Note[]         @relation("NoteToCard")
-  notifications Notification[] @relation("NotificationToCard")
+  comments          Comment[]          @relation("CardToComment")
+  notes             Note[]             @relation("NoteToCard")
+  notifications     Notification[]     @relation("NotificationToCard")
+  taskContributions TaskContribution[] @relation("TaskContributionToCard")
 
   @@index([boardId])
   @@index([clientId])
@@ -151,11 +152,33 @@ model ChecklistItem {
   content     String
   done        Boolean   @default(false)
   doneAt      DateTime?
+  doneBy      String?
   checklist   Checklist @relation("ChecklistToItem", fields: [checklistId], references: [id], onDelete: Cascade)
+  user        User?     @relation("ChecklistItemDoneBy", fields: [doneBy], references: [id], onDelete: SetNull)
 
   @@index([checklistId])
   @@index([doneAt])
   @@index([done])
+  @@index([doneBy])
+}
+
+model TaskContribution {
+  id                  String   @id @default(cuid())
+  cardId              String
+  userId              String
+  tasksMarked         Int      @default(0)
+  totalTasks          Int
+  contributionPercent Float    @default(0)
+  xpEarned            Int      @default(0)
+  coinsEarned         Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  card                Card     @relation("TaskContributionToCard", fields: [cardId], references: [id], onDelete: Cascade)
+  user                User     @relation("TaskContributionToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, userId])
+  @@index([userId])
+  @@index([cardId])
 }
 
 model ChecklistTemplate {
@@ -324,10 +347,12 @@ model User {
   Invite_Invite_acceptedByIdToUser Invite[]          @relation("Invite_acceptedByIdToUser")
   Invite_Invite_invitedByIdToUser  Invite[]          @relation("Invite_invitedByIdToUser")
   notes                            Note[]            @relation("NoteToUser")
-  notifications                    Notification[]    @relation("NotificationToUser")
+  notifications                    Notification[]      @relation("NotificationToUser")
   Session                          Session[]
-  achievements                     UserAchievement[] @relation("AchievementToUser")
-  stats                            UserStats?        @relation("StatsToUser")
+  achievements                     UserAchievement[]   @relation("AchievementToUser")
+  stats                            UserStats?          @relation("StatsToUser")
+  taskContributions                TaskContribution[]  @relation("TaskContributionToUser")
+  checklistItemsMarked             ChecklistItem[]     @relation("ChecklistItemDoneBy")
 }
 
 model UserAchievement {
