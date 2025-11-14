@@ -4,19 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trophy, Coins } from "lucide-react";
+import { useBasicStats } from "@/lib/hooks/use-user-stats";
 // TODO: Habilitar quando modelo Label, Attachment e campo 'order' existirem no banco
 // import { GlobalSearch } from "@/components/search/GlobalSearch";
-
-// Mock hook - will be replaced with real hook
-function useUserStats() {
-  return {
-    stats: {
-      level: 5,
-      coins: 120,
-    },
-    loading: false,
-  };
-}
 
 interface NavbarProps {
   user: {
@@ -31,7 +21,7 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { stats } = useUserStats();
+  const { level, coins, isLoading: statsLoading } = useBasicStats();
 
   async function handleLogout() {
     setLoading(true);
@@ -75,18 +65,18 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
         {/* Right side */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Gamification Stats */}
-          {stats && (
+          {!statsLoading && (
             <div className="flex items-center gap-2 mr-2">
               <div className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 px-3 py-1.5 rounded-lg">
                 <Trophy className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-semibold text-blue-700">
-                  Nv. {stats.level}
+                  Nv. {level}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-lg">
                 <Coins className="w-4 h-4 text-yellow-600" />
                 <span className="text-sm font-semibold text-yellow-700">
-                  {stats.coins}
+                  {coins}
                 </span>
               </div>
             </div>

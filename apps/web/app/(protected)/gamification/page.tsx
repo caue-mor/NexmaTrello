@@ -3,77 +3,33 @@
 import { StatsWidget } from "@/components/gamification/StatsWidget";
 import { AchievementsPanel } from "@/components/gamification/AchievementsPanel";
 import { Trophy, Target, Zap, Calendar, Star } from "lucide-react";
-
-// Mock hooks - will be replaced with real hooks
-function useUserStats() {
-  return {
-    stats: {
-      level: 5,
-      xp: 350,
-      xpForNextLevel: 500,
-      coins: 120,
-      streak: 7,
-      tasksCompleted: 42,
-    },
-    loading: false,
-    error: null,
-  };
-}
-
-function useAchievements() {
-  return {
-    achievements: [
-      {
-        id: "1",
-        title: "Primeira Tarefa",
-        description: "Complete sua primeira tarefa",
-        icon: "CheckCircle",
-        category: "tasks" as const,
-        xpReward: 10,
-        unlocked: true,
-        unlockedAt: new Date(),
-      },
-      {
-        id: "2",
-        title: "Produtivo",
-        description: "Complete 10 tarefas",
-        icon: "Target",
-        category: "tasks" as const,
-        xpReward: 50,
-        unlocked: true,
-        unlockedAt: new Date(),
-      },
-      {
-        id: "3",
-        title: "Pontual",
-        description: "Complete 5 tarefas no prazo",
-        icon: "Clock",
-        category: "punctuality" as const,
-        xpReward: 30,
-        unlocked: false,
-      },
-      {
-        id: "4",
-        title: "Sequência de 7",
-        description: "Mantenha uma sequência de 7 dias",
-        icon: "Flame",
-        category: "streak" as const,
-        xpReward: 100,
-        unlocked: true,
-        unlockedAt: new Date(),
-      },
-    ],
-    stats: {
-      totalAchievements: 4,
-      unlockedAchievements: 3,
-    },
-    loading: false,
-  };
-}
+import { useUserStats } from "@/lib/hooks/use-user-stats";
 
 export default function GamificationPage() {
-  const { stats, loading: statsLoading } = useUserStats();
-  const { achievements, stats: achievementStats, loading: achievementsLoading } = useAchievements();
+  const {
+    stats,
+    levelProgress,
+    streak,
+    achievements: achievementsData,
+    isLoading
+  } = useUserStats();
+
+  // Adapt data for StatsWidget
+  const statsForWidget = stats && levelProgress && streak ? {
+    level: stats.level,
+    xp: levelProgress.currentLevelXp,
+    xpForNextLevel: levelProgress.xpForNextLevel,
+    coins: stats.coins,
+    streak: streak.current,
+    tasksCompleted: stats.tasksCompleted,
+  } : null;
+
+  // Adapt data for AchievementsPanel
+  const achievementsForPanel = achievementsData?.list || [];
+  const achievementStats = {
+    totalAchievements: achievementsData?.total || 0,
+    unlockedAchievements: achievementsData?.unlocked || 0,
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 p-6">
@@ -92,7 +48,7 @@ export default function GamificationPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Stats Widget - 2/3 width on large screens */}
           <div className="lg:col-span-2">
-            <StatsWidget stats={stats} loading={statsLoading} />
+            <StatsWidget stats={statsForWidget} loading={isLoading} />
           </div>
 
           {/* How to Earn XP - 1/3 width on large screens */}
@@ -163,9 +119,9 @@ export default function GamificationPage() {
 
         {/* Achievements Section */}
         <AchievementsPanel
-          achievements={achievements}
+          achievements={achievementsForPanel}
           stats={achievementStats}
-          loading={achievementsLoading}
+          loading={isLoading}
         />
       </div>
     </div>

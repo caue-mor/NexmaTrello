@@ -5,14 +5,17 @@ import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Achievement {
-  id: string;
+  key: string;
   title: string;
   description: string;
   icon: string;
-  category: "tasks" | "punctuality" | "streak" | "special";
+  category: "task" | "streak" | "card" | "performance";
+  tier: "bronze" | "silver" | "gold" | "platinum";
   xpReward: number;
+  coinsReward: number;
   unlocked: boolean;
-  unlockedAt?: Date;
+  progress: number;
+  unlockedAt: string | null;
 }
 
 interface AchievementsPanelProps {
@@ -25,10 +28,10 @@ interface AchievementsPanelProps {
 }
 
 const categoryLabels = {
-  tasks: "Tarefas",
-  punctuality: "Pontualidade",
+  task: "Tarefas",
   streak: "Sequência",
-  special: "Especial",
+  card: "Cards",
+  performance: "Desempenho",
 };
 
 export function AchievementsPanel({
@@ -88,7 +91,7 @@ export function AchievementsPanel({
 
                 return (
                   <motion.div
-                    key={achievement.id}
+                    key={achievement.key}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}

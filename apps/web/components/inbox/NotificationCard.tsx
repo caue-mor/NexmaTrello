@@ -75,8 +75,10 @@ export function NotificationCard({ notification }: { notification: Notification 
     }
   }
 
-  function handleCardClick() {
+  async function handleCardClick() {
     if (notification.relatedCardId && notification.relatedBoardId) {
+      // Marcar como lida antes de redirecionar
+      await markAsRead();
       router.push(`/board/${notification.relatedBoardId}?card=${notification.relatedCardId}`);
     }
   }

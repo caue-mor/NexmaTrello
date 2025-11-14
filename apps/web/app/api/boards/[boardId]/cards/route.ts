@@ -12,22 +12,33 @@ export async function POST(
   { params }: { params: { boardId: string } }
 ) {
   try {
+    console.log("🔄 Creating card - START");
+
     // Aplicar proteções (auth, CSRF, rate limit)
     const protection = await withApiProtection(req);
     if (protection.error) return protection.error;
     const { user } = protection;
 
     if (!user) {
+      console.log("❌ No user in session");
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
+    console.log(`✅ User authenticated: ${user.email}`);
     const { boardId } = params;
+    console.log(`📋 Board ID: ${boardId}`);
 
     // Check board access
+    console.log("🔐 Checking board access...");
     await assertBoardRole(boardId, user.id);
+    console.log("✅ Board access granted");
 
     const body = await req.json();
+    console.log("📦 Request body:", JSON.stringify(body, null, 2));
+
+    console.log("🔍 Validating with Zod schema...");
     const data = cardCreateSchema.parse(body);
+    console.log("✅ Validation passed");
 
     // Validar e processar dueAt
     let dueAtDate: Date | null = null;
@@ -39,8 +50,10 @@ export async function POST(
     }
 
     // Usar transaction para garantir atomicidade de todas as operações
+    console.log("💾 Starting database transaction...");
     const result = await prisma.$transaction(async (tx) => {
       // 1. Criar card
+      console.log("📝 Creating card in database...");
       const card = await tx.card.create({
         data: {
           id: crypto.randomUUID(),
@@ -74,8 +87,11 @@ export async function POST(
         },
       });
 
+      console.log("✅ Card created:", card.id);
+
       // 2. Se um cliente foi vinculado E tem status ONBOARD, criar checklist de onboarding
       if (data.clientId) {
+        console.log(`🔍 Checking client onboard status: ${data.clientId}`);
         const client = await tx.client.findUnique({
           where: { id: data.clientId },
           select: { onboardStatus: true },
@@ -163,9 +179,19 @@ export async function POST(
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
+    // Log detalhado do erro
     console.error("Create card error:", err);
+    console.error("Error details:", {
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      name: err instanceof Error ? err.name : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Erro ao criar card" },
+      {
+        error: "Erro ao criar card",
+        details: err instanceof Error ? err.message : String(err)
+      },
       { status: 500 }
     );
   }

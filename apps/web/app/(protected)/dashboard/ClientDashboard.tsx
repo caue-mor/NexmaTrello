@@ -6,63 +6,7 @@ import { CreateBoardDialog } from "@/components/boards/CreateBoardDialog";
 import { TaskAlerts } from "@/components/alerts/TaskAlerts";
 import { StatsWidget } from "@/components/gamification/StatsWidget";
 import { AchievementsPanel } from "@/components/gamification/AchievementsPanel";
-
-// Mock hooks - will be replaced with real hooks
-function useUserStats() {
-  return {
-    stats: {
-      level: 5,
-      xp: 350,
-      xpForNextLevel: 500,
-      coins: 120,
-      streak: 7,
-      tasksCompleted: 42,
-    },
-    loading: false,
-    error: null,
-  };
-}
-
-function useAchievements() {
-  return {
-    achievements: [
-      {
-        id: "1",
-        title: "Primeira Tarefa",
-        description: "Complete sua primeira tarefa",
-        icon: "CheckCircle",
-        category: "tasks" as const,
-        xpReward: 10,
-        unlocked: true,
-        unlockedAt: new Date(),
-      },
-      {
-        id: "2",
-        title: "Produtivo",
-        description: "Complete 10 tarefas",
-        icon: "Target",
-        category: "tasks" as const,
-        xpReward: 50,
-        unlocked: true,
-        unlockedAt: new Date(),
-      },
-      {
-        id: "3",
-        title: "Pontual",
-        description: "Complete 5 tarefas no prazo",
-        icon: "Clock",
-        category: "punctuality" as const,
-        xpReward: 30,
-        unlocked: false,
-      },
-    ],
-    stats: {
-      totalAchievements: 3,
-      unlockedAchievements: 2,
-    },
-    loading: false,
-  };
-}
+import { useUserStats } from "@/lib/hooks/use-user-stats";
 
 interface ClientDashboardProps {
   user: {
@@ -92,8 +36,30 @@ export function ClientDashboard({
   dueTodayCards,
   dueSoonCards,
 }: ClientDashboardProps) {
-  const { stats, loading: statsLoading } = useUserStats();
-  const { achievements, stats: achievementStats, loading: achievementsLoading } = useAchievements();
+  const {
+    stats,
+    levelProgress,
+    streak,
+    achievements: achievementsData,
+    isLoading
+  } = useUserStats();
+
+  // Adapt data for StatsWidget
+  const statsForWidget = stats && levelProgress && streak ? {
+    level: stats.level,
+    xp: levelProgress.currentLevelXp,
+    xpForNextLevel: levelProgress.xpForNextLevel,
+    coins: stats.coins,
+    streak: streak.current,
+    tasksCompleted: stats.tasksCompleted,
+  } : null;
+
+  // Adapt data for AchievementsPanel
+  const achievementsForPanel = achievementsData?.list || [];
+  const achievementStats = {
+    totalAchievements: achievementsData?.total || 0,
+    unlockedAchievements: achievementsData?.unlocked || 0,
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 p-6">
@@ -114,7 +80,7 @@ export function ClientDashboard({
         </div>
 
         {/* Stats Widget */}
-        <StatsWidget stats={stats} loading={statsLoading} />
+        <StatsWidget stats={statsForWidget} loading={isLoading} />
 
         {/* Alertas de Tarefas */}
         <TaskAlerts
@@ -162,9 +128,9 @@ export function ClientDashboard({
 
         {/* Achievements Panel */}
         <AchievementsPanel
-          achievements={achievements}
+          achievements={achievementsForPanel}
           stats={achievementStats}
-          loading={achievementsLoading}
+          loading={isLoading}
         />
       </div>
     </div>

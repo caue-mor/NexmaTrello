@@ -16,7 +16,15 @@
     "add:general": "tsx scripts/add-all-to-general-board.ts",
     "add:finished": "tsx scripts/add-finished-column.ts",
     "init:stats": "tsx scripts/init-user-stats.ts",
-    "reset:gamification": "tsx scripts/reset-gamification.ts"
+    "reset:gamification": "tsx scripts/reset-gamification.ts",
+    "check:users": "tsx scripts/check-users-prod.ts",
+    "test:gamification": "tsx scripts/test-gamification.ts",
+    "test:xp": "tsx scripts/test-xp-award.ts",
+    "diagnose:cards": "tsx scripts/diagnose-card-creation-issue.ts",
+    "activate:users": "tsx scripts/activate-all-users.ts",
+    "test:permissions": "tsx scripts/test-board-permissions.ts",
+    "verify:memberships": "tsx scripts/verify-board-memberships.ts",
+    "fix:memberships": "tsx scripts/fix-board-memberships.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

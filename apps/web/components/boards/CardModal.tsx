@@ -185,11 +185,13 @@ export function CardModal({
 
         // Check for gamification data
         if (data.gamification) {
+          console.log("Gamification data received:", data.gamification);
+
           // Handle level up
           if (data.gamification.leveledUp) {
             setLevelUpData({
               level: data.gamification.newLevel,
-              coins: data.gamification.coinsEarned || 0,
+              coins: data.gamification.coinsGained || 0,
             });
             setShowLevelUp(true);
           }
@@ -200,14 +202,16 @@ export function CardModal({
             import("@/lib/gamification/achievements").then((mod) => {
               const ACHIEVEMENTS = mod.ACHIEVEMENTS;
 
-              data.gamification.newAchievements.forEach((achievementId: string) => {
-                const achievement = ACHIEVEMENTS.find((a) => a.id === achievementId);
+              data.gamification.newAchievements.forEach((achievementKey: string) => {
+                const achievement = ACHIEVEMENTS.find((a) => a.key === achievementKey);
                 if (achievement) {
                   toast.custom((t) => (
                     <AchievementToast achievement={achievement} />
                   ), {
                     duration: 5000,
                   });
+                } else {
+                  console.warn("Achievement not found for key:", achievementKey);
                 }
               });
             });
@@ -217,6 +221,7 @@ export function CardModal({
           if (data.gamification.xpGained > 0) {
             toast.success(`+${data.gamification.xpGained} XP ganho!`, {
               description: "Continue completando tarefas para subir de nível",
+              duration: 4000,
             });
           }
         }

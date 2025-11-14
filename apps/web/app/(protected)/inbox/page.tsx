@@ -1,15 +1,32 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NotificationCard } from "@/components/inbox/NotificationCard";
+import { MarkAllReadButton } from "@/components/inbox/MarkAllReadButton";
 
 async function getNotifications(userId: string) {
+  // 1. Buscar boards onde o usuário é membro
+  const memberBoards = await prisma.boardMember.findMany({
+    where: { userId },
+    select: { boardId: true },
+  });
+
+  const memberBoardIds = memberBoards.map((m) => m.boardId);
+
+  // 2. Buscar notificações, excluindo convites de boards onde já é membro
   return await prisma.notification.findMany({
     where: {
       userId,
-      // Ocultar convites já processados (lidos)
       OR: [
-        { type: "ALERT" }, // Sempre mostra alerts
-        { type: "INVITE", readAt: null }, // Só mostra convites não lidos
+        // ALERTS: sempre mostra
+        { type: "ALERT" },
+        // INVITES: apenas de boards onde NÃO é membro e não lidos
+        {
+          type: "INVITE",
+          readAt: null,
+          relatedBoardId: {
+            notIn: memberBoardIds,
+          },
+        },
       ],
     },
     orderBy: { createdAt: "desc" },
@@ -26,11 +43,14 @@ export default async function InboxPage() {
   return (
     <div className="min-h-screen bg-neutral-50 p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Notificações</h1>
-          <p className="text-neutral-600 mt-1">
-            {unread.length} não lidas
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Notificações</h1>
+            <p className="text-neutral-600 mt-1">
+              {unread.length} não lidas
+            </p>
+          </div>
+          {unread.length > 0 && <MarkAllReadButton />}
         </div>
 
         {notifications.length === 0 ? (
