@@ -38,12 +38,43 @@ interface CardWithChecklists extends Card {
 
 /**
  * Award XP for completing a checklist item
+ * REGRA: XP só é dado para usuários atribuídos ao card
  */
 export async function awardXpForChecklistItem(
   userId: string,
   card: CardWithChecklists,
   isCardComplete: boolean
 ): Promise<GamificationResult> {
+  // 1. Verificar assignees do card
+  const assignees = await prisma.cardAssignee.findMany({
+    where: { cardId: card.id },
+    select: { userId: true },
+  });
+
+  // 2. Se card tem assignees, XP só para eles. Se não tem, XP para quem marcou.
+  const eligibleUserIds = assignees.length > 0
+    ? assignees.map(a => a.userId)
+    : [userId];
+
+  // 3. Se quem marcou NÃO está na lista de elegíveis, retornar sem dar XP
+  if (!eligibleUserIds.includes(userId)) {
+    console.log(`⚠️  User ${userId} marcou tarefa mas NÃO está atribuído ao card ${card.id}`);
+    return {
+      xpGained: 0,
+      totalXp: 0,
+      coinsGained: 0,
+      totalCoins: 0,
+      leveledUp: false,
+      newLevel: 1,
+      previousLevel: 1,
+      newAchievements: [],
+      achievementXp: 0,
+      achievementCoins: 0,
+    };
+  }
+
+  console.log(`✅ Awarding XP to user ${userId} for card ${card.id}`);
+
   // Ensure user has stats
   let userStats = await prisma.userStats.findUnique({
     where: { userId },
