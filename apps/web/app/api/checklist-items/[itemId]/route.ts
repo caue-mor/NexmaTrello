@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { withApiProtection } from "@/lib/api-helpers";
 import { awardXpForChecklistItem } from "@/lib/gamification/award-xp";
+import { triggerBoardUpdate } from "@/lib/pusher";
 
 export async function PUT(
   req: Request,
@@ -171,6 +172,13 @@ export async function PUT(
                 data: completionNotifications,
               });
             }
+
+            // Disparar evento Pusher para atualização em tempo real
+            await triggerBoardUpdate(boardId, "card:completed", {
+              cardId: card.id,
+              cardTitle: card.title,
+              columnId: finishedColumn.id,
+            });
           }
         }
 

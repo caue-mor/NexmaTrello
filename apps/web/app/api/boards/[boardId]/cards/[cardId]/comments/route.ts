@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { assertBoardRole } from "@/lib/rbac";
 import { z } from "zod";
+import { triggerBoardUpdate } from "@/lib/pusher";
 
 const commentCreateSchema = z.object({
   content: z.string().min(1, "Comentário não pode estar vazio"),
@@ -48,22 +49,45 @@ export async function POST(
       },
     });
 
-    // Create notifications for card assignees (except the commenter)
-    const assigneeIds = card.assignees
-      .map((a) => a.userId)
-      .filter((id) => id !== user.id);
+    // Buscar informações do usuário que comentou
+    const commenter = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, email: true },
+    });
 
-    if (assigneeIds.length > 0) {
+    // Create notifications for card assignees AND creator (except the commenter)
+    const notifyUserIds = new Set<string>();
+
+    // Add assignees
+    card.assignees.forEach((a) => {
+      if (a.userId !== user.id) {
+        notifyUserIds.add(a.userId);
+      }
+    });
+
+    // Add card creator
+    if (card.createdById !== user.id) {
+      notifyUserIds.add(card.createdById);
+    }
+
+    if (notifyUserIds.size > 0) {
       await prisma.notification.createMany({
-        data: assigneeIds.map((userId) => ({
+        data: Array.from(notifyUserIds).map((userId) => ({
+          id: crypto.randomUUID(),
           userId,
-          type: "ALERT",
+          type: "ALERT" as const,
           title: "Novo comentário",
-          message: `${user.name} comentou no card "${card.title}"`,
+          message: `${commenter?.name || commenter?.email || "Alguém"} comentou no card "${card.title}"`,
           relatedCardId: card.id,
         })),
       });
     }
+
+    // Disparar evento Pusher para atualização em tempo real
+    await triggerBoardUpdate(params.boardId, "comment:added", {
+      cardId: params.cardId,
+      comment,
+    });
 
     return NextResponse.json({ comment });
   } catch (err) {

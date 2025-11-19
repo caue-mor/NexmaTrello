@@ -1,0 +1,67 @@
+Análise do Sistema — NexmaTrello
+
+Visão Geral
+- Monorepo enxuto focado em `apps/web` com Next.js 14 (App Router) e React 18.
+- API e UI no mesmo app: rotas UI em `app/*` e rotas REST em `app/api/*`.
+- Banco com Prisma (PostgreSQL) e migrações; autenticação com Lucia; realtime via Pusher; rate limit opcional com Upstash.
+- Deploy orientado a Railway/Nixpacks; sem CI configurado.
+
+Stack
+- Linguagens: TypeScript, SQL (Prisma), scripts TS/Shell/Python para utilidades.
+- Frontend: Next.js App Router, Tailwind CSS, shadcn/ui, Framer Motion.
+- Server: Rotas API do Next; validação com Zod; cookies HttpOnly para sessão.
+- Infra: Prisma, Upstash (rate limit, opcional), Pusher (realtime).
+- Gerenciador de pacotes: npm.
+
+Diretórios-Chave
+- `apps/web/app`: páginas, layouts e rotas API (ex.: `apps/web/app/layout.tsx`).
+- `apps/web/components`: componentes UI (boards, notes, clientes, gamificação).
+- `apps/web/lib`: `auth.ts`, `db.ts`, `api-helpers.ts`, `rbac.ts`, `pusher.ts`, `rate-limit.ts`, `validators.ts`, hooks.
+- `apps/web/lib/gamification`: `xp-system.ts`, `achievements.ts`, `streak-system.ts`.
+- `apps/web/prisma`: `schema.prisma`, `migrations/*`, `seed.ts`.
+- Raiz: `package.json`, `.env.example`, `railway.toml/json`, `nixpacks.toml`.
+
+Entry Points
+- Layout raiz: `apps/web/app/layout.tsx`.
+- Middleware de proteção: `apps/web/middleware.ts`.
+- Exemplos de rotas API: Boards GET/POST em `apps/web/app/api/boards/route.ts`.
+
+Comandos Principais
+- Raiz (`package.json`): `npm run dev`, `npm run build`, `npm start`.
+- Web (`apps/web/package.json`): `dev`, `build`, `start`.
+- Prisma: `postinstall` (generate) e `seed`.
+- Utilitários: `test:system`, `init:stats`, `reset:gamification`, `check:users`, `test:gamification`, `test:xp`, etc.
+
+Roteamento
+- App Router com grupos: `(auth)/{login,register}` e `(protected)/{dashboard, inbox, notes, clientes, performance, gamification, board/[boardId]/…}`.
+- APIs REST em `app/api/*` para boards, columns, cards, checklists, labels, clients, invites, notifications, uploads, search, stats, achievements.
+
+Estado
+- Hooks React e Server Components; sem Redux. Principais hooks em `lib/hooks/*` (boards, inbox, realtime, stats, achievements).
+
+API e Segurança
+- Proteção de API: `lib/api-helpers.ts` com autenticação, rate limit e CSRF desabilitado (sistema interno).
+- Autenticação (Lucia + cookie HttpOnly 30 dias): `lib/auth.ts`.
+- Middleware de acesso: `apps/web/middleware.ts`.
+- RBAC e validações: `lib/rbac.ts`, `lib/validators.ts` (Zod).
+- Realtime (Pusher) inicializa apenas com envs configuradas: `lib/pusher.ts`.
+
+Banco/ORM
+- Datasource/config: `apps/web/prisma/schema.prisma` usando PostgreSQL.
+- Modelos principais: `User`, `Board`, `Card`, `Checklist`/`ChecklistItem`, `Note`, `Notification`, `Invite`, `UserStats`, `UserAchievement`, `TaskContribution`.
+- Enums: `Role`, `Urgency`, `ClientStatus`, `OnboardStatus`, `NoteScope`, `NotificationType`.
+
+Config/Ambiente
+- `.env.example`: `DATABASE_URL`, `AUTH_SECRET`, `CSRF_SECRET`, `ARGON2_*`, Upstash (`UPSTASH_*`), Pusher (`PUSHER_*`), `NEXT_PUBLIC_*`.
+- Next config desabilita lint e verificação de tipos em build de produção: `apps/web/next.config.mjs`.
+- Tailwind/PostCSS/TS configs presentes; `components.json` para shadcn.
+
+Scripts e Utilitários
+- Seeds (`seed.ts`) e scripts de diagnóstico/manutenção: membros/boards, init/reset de gamificação, verificação/permissões de usuários, testes de XP e gamificação.
+
+Riscos e Observações
+- Lint/TypeScript ignorados em produção podem ocultar problemas.
+- Rate limiting depende de Upstash; sem `UPSTASH_*` fica desativado.
+- Uploads locais servidos por API exigem validações de path/MIME e controle de acesso robustos.
+- Sem CI: não há pipelines de lint/test/migrations; risco operacional maior.
+- Realtime e alguns recursos iniciam apenas se variáveis de ambiente estiverem presentes.

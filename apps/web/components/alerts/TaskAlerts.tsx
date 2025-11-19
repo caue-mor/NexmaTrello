@@ -5,7 +5,7 @@ import { getAlertMessage, getAlertVariant, TaskAlert } from "@/lib/task-status";
 import { AlertCircle, AlertTriangle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface TaskAlertsProps {
   overdueCards: TaskAlert[];
@@ -22,8 +22,27 @@ export function TaskAlerts({
 }: TaskAlertsProps) {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
+  // Carregar IDs dispensados do localStorage ao montar
+  useEffect(() => {
+    const stored = localStorage.getItem("nexlist-dismissed-alerts");
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored);
+        if (Array.isArray(ids)) {
+          setDismissedIds(new Set(ids));
+        }
+      } catch (e) {
+        console.error("Erro ao carregar alertas dispensados", e);
+      }
+    }
+  }, []);
+
   const handleDismiss = (id: string) => {
-    setDismissedIds((prev) => new Set(prev).add(id));
+    setDismissedIds((prev) => {
+      const newSet = new Set(prev).add(id);
+      localStorage.setItem("nexlist-dismissed-alerts", JSON.stringify(Array.from(newSet)));
+      return newSet;
+    });
   };
 
   const visibleOverdue = overdueCards.filter((card) => !dismissedIds.has(card.id));

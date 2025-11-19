@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { assertBoardRole } from "@/lib/rbac";
 import { z } from "zod";
+import { triggerUserNotification, triggerBoardUpdate } from "@/lib/pusher";
 
 const assigneeSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -90,6 +91,21 @@ export async function POST(
         relatedCardId: params.cardId,
         relatedBoardId: params.boardId,
       },
+    });
+
+    // Disparar eventos Pusher para atualização em tempo real
+    await triggerUserNotification(targetUser.id, {
+      type: "ALERT",
+      title: "Você foi atribuído a um card",
+      message: `Card: "${card?.title || "Sem título"}"`,
+      cardId: params.cardId,
+      boardId: params.boardId,
+    });
+
+    await triggerBoardUpdate(params.boardId, "card:assigned", {
+      cardId: params.cardId,
+      userId: targetUser.id,
+      userName: targetUser.name || targetUser.email,
     });
 
     return NextResponse.json({ ok: true });

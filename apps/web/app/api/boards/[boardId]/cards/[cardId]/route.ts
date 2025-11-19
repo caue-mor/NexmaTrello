@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { cardUpdateSchema } from "@/lib/validators";
 import { assertBoardRole } from "@/lib/rbac";
 import { z } from "zod";
+import { notifyCardUpdated } from "@/lib/pusher";
 
 export async function GET(
   req: Request,
@@ -198,6 +199,9 @@ export async function PUT(
         card.checklists.push(onboardingChecklist);
       }
     }
+
+    // Disparar evento Pusher para atualização em tempo real
+    await notifyCardUpdated(boardId, card);
 
     return NextResponse.json({ card });
   } catch (err) {

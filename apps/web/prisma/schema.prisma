@@ -60,6 +60,7 @@ model Board {
   invites           Invite[]            @relation("InviteToBoard")
   labels            Label[]             @relation("LabelToBoard")
   notes             Note[]              @relation("NoteToBoard")
+  tickets           Ticket[]            @relation("TicketToBoard")
 }
 
 model BoardMember {
@@ -103,6 +104,7 @@ model Card {
   notes             Note[]             @relation("NoteToCard")
   notifications     Notification[]     @relation("NotificationToCard")
   taskContributions TaskContribution[] @relation("TaskContributionToCard")
+  tickets           Ticket[]           @relation("TicketToCard")
 
   @@index([boardId])
   @@index([clientId])
@@ -351,8 +353,20 @@ model User {
   Session                          Session[]
   achievements                     UserAchievement[]   @relation("AchievementToUser")
   stats                            UserStats?          @relation("StatsToUser")
+
+  // Google Calendar Integration
+  googleToken                      GoogleToken?
+
   taskContributions                TaskContribution[]  @relation("TaskContributionToUser")
   checklistItemsMarked             ChecklistItem[]     @relation("ChecklistItemDoneBy")
+  
+  // Ticket relations
+  requestedTickets                 Ticket[]            @relation("TicketRequester")
+  assignedTickets                  Ticket[]            @relation("TicketAssignee")
+  ticketHistory                    TicketHistory[]     @relation("TicketHistoryToUser")
+  timeEntries                      TimeEntry[]         @relation("TimeEntryToUser")
+  ticketComments                   TicketComment[]     @relation("TicketCommentToUser")
+  ticketAttachments                TicketAttachment[]  @relation("TicketAttachmentToUser")
 }
 
 model UserAchievement {
@@ -389,6 +403,154 @@ model UserStats {
   @@index([level])
   @@index([userId])
   @@index([xp])
+}
+
+model Ticket {
+  id              String            @id @default(cuid())
+  ticketNumber    Int               @unique
+  title           String
+  description     String?
+  type            TicketType        @default(TASK)
+  priority        TicketPriority    @default(MEDIUM)
+  status          TicketStatus      @default(OPEN)
+  
+  // Rastreamento de pessoas
+  requesterId     String
+  assignedToId    String?
+  
+  // Rastreamento de tempo
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  startedAt       DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  dueDate         DateTime?
+  
+  // SLA (Service Level Agreement)
+  slaDeadline     DateTime?
+  slaViolated     Boolean           @default(false)
+  
+  // Tempo gasto
+  estimatedHours  Float?
+  actualHours     Float?
+  
+  // Relacionamentos
+  boardId         String
+  cardId          String?           // Opcional: vincular a um card existente
+  googleEventId   String?           // ID do evento no Google Calendar
+  
+  board           Board             @relation("TicketToBoard", fields: [boardId], references: [id], onDelete: Cascade)
+  card            Card?             @relation("TicketToCard", fields: [cardId], references: [id], onDelete: SetNull)
+  requester       User              @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignedTo      User?             @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  // Histórico e anexos
+  comments        TicketComment[]
+  attachments     TicketAttachment[]
+  history         TicketHistory[]
+  timeEntries     TimeEntry[]
+  
+  @@index([ticketNumber])
+  @@index([requesterId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([boardId])
+  @@index([cardId])
+}
+
+model TicketHistory {
+  id          String   @id @default(cuid())
+  ticketId    String
+  userId      String
+  action      String
+  field       String?
+  oldValue    String?
+  newValue    String?
+  createdAt   DateTime @default(now())
+  
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user        User     @relation("TicketHistoryToUser", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  ticketId    String
+  userId      String
+  description String?
+  hours       Float
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user        User     @relation("TimeEntryToUser", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([userId])
+  @@index([date])
+}
+
+model TicketComment {
+  id          String   @id @default(cuid())
+  ticketId    String
+  userId      String
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user        User     @relation("TicketCommentToUser", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model TicketAttachment {
+  id          String   @id @default(cuid())
+  ticketId    String
+  userId      String
+  fileName    String
+  fileUrl     String
+  fileSize    Int
+  mimeType    String
+  createdAt   DateTime @default(now())
+  
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user        User     @relation("TicketAttachmentToUser", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@index([userId])
+}
+
+enum TicketType {
+  BUG
+  FEATURE
+  TASK
+  SUPPORT
+  URGENT
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+  CANCELLED
 }
 
 enum ActivityType {
@@ -452,4 +614,14 @@ enum Urgency {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+model GoogleToken {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  accessToken  String
+  refreshToken String?
+  expiryDate   BigInt?
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -6,6 +6,8 @@ const PUBLIC_ROUTES = [
   "/register",
   "/api/auth/login",
   "/api/auth/register",
+  "/api/auth/google",
+  "/api/auth/google/callback",
   "/api/csrf",
   "/api/restore-db",
   "/api/migrate-notes",
@@ -34,6 +36,8 @@ export async function middleware(req: NextRequest) {
   // Redirect to dashboard if authenticated and accessing auth pages
   const API_EXCEPTIONS = [
     "/api/auth/logout",
+    "/api/auth/google",
+    "/api/auth/google/callback",
     "/api/restore-db",
     "/api/migrate-notes",
     "/api/csrf",

@@ -82,6 +82,27 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
             </div>
           )}
 
+          {/* Calendar link */}
+          <Link
+            href="/calendar"
+            className="p-2 rounded-lg hover:bg-neutral-100 transition"
+            title="Calendário"
+          >
+            <svg
+              className="w-5 h-5 text-neutral-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </Link>
+
           {/* Notes link */}
           <Link
             href="/notes"
@@ -139,9 +160,8 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
                 {initials}
               </div>
               <svg
-                className={`w-4 h-4 text-neutral-600 transition-transform ${
-                  showDropdown ? "rotate-180" : ""
-                }`}
+                className={`w-4 h-4 text-neutral-600 transition-transform ${showDropdown ? "rotate-180" : ""
+                  }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
