@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TemplateSelector } from "./TemplateSelector";
 
 export function CreateBoardDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,46 +61,64 @@ export function CreateBoardDialog() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-        <h2 className="text-2xl font-semibold mb-4">Criar Novo Grupo</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-2xl my-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">Criar Novo Grupo</h2>
+          <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+            ✕
+          </Button>
+        </div>
 
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="title">
-              Nome do Grupo
-            </label>
-            <Input
-              id="title"
-              placeholder="Ex: Marketing, Vendas, Design..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
+        <Tabs defaultValue="blank" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="blank">Em Branco</TabsTrigger>
+            <TabsTrigger value="template">Usar Modelo</TabsTrigger>
+          </TabsList>
 
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-              {error}
-            </div>
-          )}
+          <TabsContent value="blank">
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="title">
+                  Nome do Grupo
+                </label>
+                <Input
+                  id="title"
+                  placeholder="Ex: Marketing, Vendas, Design..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
 
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => setIsOpen(false)}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? "Criando..." : "Criar Grupo"}
-            </Button>
-          </div>
-        </form>
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsOpen(false)}
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" className="flex-1" disabled={loading}>
+                  {loading ? "Criando..." : "Criar Grupo"}
+                </Button>
+              </div>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="template">
+            <TemplateSelector onClose={() => setIsOpen(false)} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

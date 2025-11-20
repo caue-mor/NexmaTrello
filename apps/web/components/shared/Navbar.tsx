@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, Coins } from "lucide-react";
+import { Trophy, Coins, BarChart2 } from "lucide-react";
 import { useBasicStats } from "@/lib/hooks/use-user-stats";
-// TODO: Habilitar quando modelo Label, Attachment e campo 'order' existirem no banco
-// import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
 interface NavbarProps {
   user: {
@@ -49,18 +50,18 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
     .toUpperCase();
 
   return (
-    <nav className="bg-white border-b border-neutral-200 px-6 py-3">
+    <nav className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold">
             N
           </div>
-          <span className="text-xl font-bold">NexList</span>
+          <span className="text-xl font-bold dark:text-white">NexList</span>
         </Link>
 
-        {/* Global Search - TODO: Habilitar quando modelo Label, Attachment e campo 'order' existirem */}
-        {/* <GlobalSearch /> */}
+        {/* Global Search */}
+        <GlobalSearch />
 
         {/* Right side */}
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -124,31 +125,20 @@ export function Navbar({ user, unreadCount = 0 }: NavbarProps) {
             </svg>
           </Link>
 
-          {/* Inbox link */}
+          {/* Analytics Link */}
           <Link
-            href="/inbox"
-            className="relative p-2 rounded-lg hover:bg-neutral-100 transition"
-            title="Notificações"
+            href="/analytics"
+            className="relative p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+            title="Relatórios e Métricas"
           >
-            <svg
-              className="w-5 h-5 text-neutral-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-              />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
+            <BarChart2 className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
           </Link>
+
+          {/* Notification Center */}
+          <NotificationCenter />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* User menu */}
           <div className="relative">

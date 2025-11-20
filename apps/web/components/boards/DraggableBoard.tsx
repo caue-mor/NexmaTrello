@@ -50,6 +50,7 @@ interface Card {
 interface Column {
   id: string;
   title: string;
+  isFixed?: boolean;
   cards: Card[];
 }
 
@@ -150,6 +151,28 @@ export function DraggableBoard({
     columnId: null,
     columnTitle: null,
   });
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
+  // Toggle selection with Ctrl/Cmd click
+  const toggleSelection = (cardId: string, multiSelect: boolean, rangeSelect: boolean) => {
+    if (rangeSelect && lastSelectedId) {
+      // TODO: Implement range selection logic if needed
+      // For now, just fallback to multi-select behavior
+    }
+
+    if (multiSelect) {
+      setSelectedCardIds(prev =>
+        prev.includes(cardId)
+          ? prev.filter(id => id !== cardId)
+          : [...prev, cardId]
+      );
+    } else {
+      setSelectedCardIds(prev => prev.includes(cardId) ? [] : [cardId]);
+    }
+    setLastSelectedId(cardId);
+    setSelectedCard(cardId); // Keep existing single select for modal
+  };
 
   async function handleDragEnd(result: DropResult) {
     const { source, destination, draggableId } = result;
@@ -167,6 +190,14 @@ export function DraggableBoard({
 
     const sourceColumnId = source.droppableId;
     const destColumnId = destination.droppableId;
+
+    // Check if dragging a selected card along with others
+    const draggingSelected = selectedCardIds.includes(draggableId);
+    const cardsToMove = draggingSelected ? selectedCardIds : [draggableId];
+
+    // If dragging multiple items, we need to handle them carefully
+    // For this implementation, we'll stick to single item drag logic for the visual part
+    // but we could extend this to move all selected items in the backend
 
     // Moving within the same column
     if (sourceColumnId === destColumnId) {
@@ -262,11 +293,12 @@ export function DraggableBoard({
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        {/* Container com scroll horizontal - estilo Trello */}
+        <div className="flex gap-3 overflow-x-auto pb-4 h-[calc(100vh-220px)]">
           {columns.map((column) => (
             <div
               key={column.id}
-              className="flex-shrink-0 w-80 bg-neutral-100 rounded-xl p-4"
+              className="flex flex-col bg-neutral-100 rounded-xl p-3 flex-shrink-0 w-[280px]"
             >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4">
@@ -275,7 +307,7 @@ export function DraggableBoard({
                   <span className="text-sm text-neutral-500">
                     {column.cards.length}
                   </span>
-                  {column.cards.length === 0 && (
+                  {column.cards.length === 0 && !column.isFixed && (
                     <button
                       onClick={() => openDeleteColumnDialog(column.id, column.title)}
                       className="p-1 hover:bg-red-100 rounded text-red-600 transition"
@@ -295,9 +327,10 @@ export function DraggableBoard({
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`space-y-3 min-h-[200px] ${
-                      snapshot.isDraggingOver ? "bg-blue-50 rounded-lg p-2" : ""
-                    }`}
+                    className={`flex-1 overflow-y-auto space-y-2 min-h-[100px] transition-colors duration-200 ${snapshot.isDraggingOver
+                      ? "bg-blue-100/50 ring-2 ring-blue-400 ring-inset rounded-lg"
+                      : ""
+                      }`}
                   >
                     {column.cards.length === 0 && !snapshot.isDraggingOver ? (
                       <div className="text-center py-8 text-sm text-neutral-500">
@@ -318,6 +351,8 @@ export function DraggableBoard({
                             ? Math.round((doneItems / totalItems) * 100)
                             : 0;
 
+                        const isSelected = selectedCardIds.includes(card.id);
+
                         return (
                           <Draggable
                             key={card.id}
@@ -329,11 +364,30 @@ export function DraggableBoard({
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition cursor-pointer ${
-                                  snapshot.isDragging ? "shadow-lg rotate-2" : ""
-                                } ${getUrgencyBorderClass(card.urgency)}`}
-                                onClick={() => setSelectedCard(card.id)}
+                                className={`bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing group relative ${snapshot.isDragging
+                                  ? "shadow-2xl scale-105 rotate-2 ring-2 ring-blue-500 ring-opacity-50 z-50"
+                                  : "hover:-translate-y-0.5"
+                                  } ${isSelected
+                                    ? "ring-2 ring-blue-500 bg-blue-50"
+                                    : ""
+                                  } ${getUrgencyBorderClass(card.urgency)}`}
+                                onClick={(e) => {
+                                  if (e.metaKey || e.ctrlKey) {
+                                    e.stopPropagation();
+                                    toggleSelection(card.id, true, false);
+                                  } else {
+                                    toggleSelection(card.id, false, false);
+                                  }
+                                }}
                               >
+                                {/* Selection Indicator */}
+                                {isSelected && (
+                                  <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                )}
                                 <h4 className="font-medium mb-2">{card.title}</h4>
 
                                 {card.description && (
@@ -395,13 +449,12 @@ export function DraggableBoard({
                                     };
                                     return (
                                       <span
-                                        className={`px-2 py-1 rounded ${
-                                          card.urgency === "CRITICAL"
-                                            ? "bg-red-100 text-red-700"
-                                            : card.urgency === "HIGH"
+                                        className={`px-2 py-1 rounded ${card.urgency === "CRITICAL"
+                                          ? "bg-red-100 text-red-700"
+                                          : card.urgency === "HIGH"
                                             ? "bg-orange-100 text-orange-700"
                                             : "bg-blue-100 text-blue-700"
-                                        }`}
+                                          }`}
                                       >
                                         {urgencyLabels[card.urgency]}
                                       </span>
@@ -483,11 +536,10 @@ export function DraggableBoard({
                                               className="flex items-center gap-1 text-xs"
                                             >
                                               <span
-                                                className={`inline-block w-3 h-3 rounded border flex-shrink-0 ${
-                                                  item.done
-                                                    ? "bg-green-500 border-green-500"
-                                                    : "border-neutral-300"
-                                                }`}
+                                                className={`inline-block w-3 h-3 rounded border flex-shrink-0 ${item.done
+                                                  ? "bg-green-500 border-green-500"
+                                                  : "border-neutral-300"
+                                                  }`}
                                               >
                                                 {item.done && (
                                                   <span className="text-white text-[10px] leading-none flex items-center justify-center h-full">
@@ -496,11 +548,10 @@ export function DraggableBoard({
                                                 )}
                                               </span>
                                               <span
-                                                className={`truncate ${
-                                                  item.done
-                                                    ? "line-through text-neutral-400"
-                                                    : "text-neutral-600"
-                                                }`}
+                                                className={`truncate ${item.done
+                                                  ? "line-through text-neutral-400"
+                                                  : "text-neutral-600"
+                                                  }`}
                                               >
                                                 {item.content}
                                               </span>

@@ -17,8 +17,12 @@ interface TicketFormProps {
 
 export function TicketForm({ boardId, onSuccess, onCancel }: TicketFormProps) { // Updated type to use TicketFormProps
     const [loading, setLoading] = useState(false);
-    const [boards, setBoards] = useState<{ id: string; title: string }[]>([]); // Added boards state
-    const [selectedBoardId, setSelectedBoardId] = useState(boardId || ""); // Added selectedBoardId state
+    const [boards, setBoards] = useState<{ id: string; title: string }[]>([]);
+    const [selectedBoardId, setSelectedBoardId] = useState(boardId || "");
+    const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string | null; email: string }[]>([]);
+    const [assigneeInput, setAssigneeInput] = useState("");
+    const [showAssigneeSuggestions, setShowAssigneeSuggestions] = useState(false);
+    const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -29,7 +33,7 @@ export function TicketForm({ boardId, onSuccess, onCancel }: TicketFormProps) { 
     });
 
     // Carregar boards se não houver boardId pré-selecionado
-    useEffect(() => { // Changed from useState to useEffect
+    useEffect(() => {
         if (!boardId) {
             fetch("/api/boards")
                 .then((res) => res.json())
@@ -38,7 +42,19 @@ export function TicketForm({ boardId, onSuccess, onCancel }: TicketFormProps) { 
                 })
                 .catch((err) => console.error("Erro ao carregar boards:", err));
         }
-    }, [boardId]); // Dependency array for useEffect
+    }, [boardId]);
+
+    // Carregar usuários disponíveis quando board for selecionado
+    useEffect(() => {
+        if (selectedBoardId) {
+            fetch(`/api/users/available?boardId=${selectedBoardId}&onlyMembers=true`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.users) setAvailableUsers(data.users);
+                })
+                .catch((err) => console.error("Erro ao carregar usuários:", err));
+        }
+    }, [selectedBoardId]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -54,7 +70,8 @@ export function TicketForm({ boardId, onSuccess, onCancel }: TicketFormProps) { 
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
-                    boardId: selectedBoardId, // Used selectedBoardId
+                    boardId: selectedBoardId,
+                    assignedToId: selectedAssigneeId,
                     estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
                     dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
                 }),
@@ -158,11 +175,78 @@ export function TicketForm({ boardId, onSuccess, onCancel }: TicketFormProps) { 
                     </div>
                 </div>
 
+                {/* Seletor de Responsável */}
                 <div className="space-y-2">
-                    <Label htmlFor="description">Descrição</Label>
+                    <Label htmlFor="assignee">Atribuir para (Responsável)</Label>
+                    <div className="relative">
+                        <Input
+                            id="assignee"
+                            placeholder="Digite o nome ou email do responsável..."
+                            value={assigneeInput}
+                            onChange={(e) => {
+                                setAssigneeInput(e.target.value);
+                                setShowAssigneeSuggestions(e.target.value.trim().length > 0);
+                            }}
+                            onFocus={() => {
+                                if (assigneeInput.trim().length > 0) {
+                                    setShowAssigneeSuggestions(true);
+                                }
+                            }}
+                            disabled={!selectedBoardId}
+                            autoComplete="off"
+                        />
+
+                        {/* Dropdown de sugestões */}
+                        {showAssigneeSuggestions && availableUsers.filter(u => {
+                            const term = assigneeInput.toLowerCase();
+                            return (u.name || "").toLowerCase().includes(term) || u.email.toLowerCase().includes(term);
+                        }).length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                    {availableUsers
+                                        .filter(u => {
+                                            const term = assigneeInput.toLowerCase();
+                                            return (u.name || "").toLowerCase().includes(term) || u.email.toLowerCase().includes(term);
+                                        })
+                                        .map((user) => (
+                                            <button
+                                                key={user.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedAssigneeId(user.id);
+                                                    setAssigneeInput(user.name || user.email);
+                                                    setShowAssigneeSuggestions(false);
+                                                }}
+                                                className="w-full flex items-center gap-3 p-3 hover:bg-neutral-50 transition text-left border-b border-neutral-100 last:border-b-0"
+                                            >
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                                                    {(user.name || user.email)[0].toUpperCase()}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate">
+                                                        {user.name || user.email}
+                                                    </p>
+                                                    <p className="text-xs text-neutral-500 truncate">
+                                                        {user.email}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                </div>
+                            )}
+
+                        {selectedAssigneeId && (
+                            <p className="text-xs text-green-600 mt-1">
+                                ✓ Responsável selecionado
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="description">Descrição / Motivo</Label>
                     <Textarea
                         id="description"
-                        placeholder="Descreva detalhadamente o que precisa ser feito..."
+                        placeholder="Descreva detalhadamente o problema ou solicitação..."
                         className="h-32"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}

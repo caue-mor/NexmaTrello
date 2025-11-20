@@ -10,6 +10,7 @@ const updateTicketSchema = z.object({
     description: z.string().optional(),
     type: z.enum(["BUG", "FEATURE", "TASK", "SUPPORT", "URGENT"]).optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT", "CRITICAL"]).optional(),
+    status: z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]).optional(),
     dueDate: z.string().nullable().optional(),
     estimatedHours: z.number().optional(),
 });
@@ -174,6 +175,31 @@ export async function PUT(
                 oldValue: ticket.estimatedHours?.toString() || "0",
                 newValue: data.estimatedHours?.toString() || "0",
             });
+        }
+
+        // Lógica de mudança de status e rastreamento de tempo
+        if (data.status && data.status !== ticket.status) {
+            updateData.status = data.status;
+
+            // Se mudar para IN_PROGRESS e ainda não foi iniciado, setar startedAt
+            if (data.status === "IN_PROGRESS" && !ticket.startedAt) {
+                updateData.startedAt = new Date();
+                historyEntries.push({
+                    userId: user.id,
+                    action: "started",
+                    field: "status",
+                    oldValue: ticket.status,
+                    newValue: data.status,
+                });
+            } else {
+                historyEntries.push({
+                    userId: user.id,
+                    action: "updated",
+                    field: "status",
+                    oldValue: ticket.status,
+                    newValue: data.status,
+                });
+            }
         }
 
         // Atualizar ticket e criar histórico

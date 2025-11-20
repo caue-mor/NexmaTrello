@@ -6,6 +6,7 @@ import { notifyCardCreated } from "@/lib/pusher";
 import { logCardCreated } from "@/lib/activity";
 import { z } from "zod";
 import { withApiProtection } from "@/lib/api-helpers";
+import { AutomationEngine } from "@/lib/automation-engine";
 
 export async function POST(
   req: Request,
@@ -167,6 +168,12 @@ export async function POST(
 
     // Trigger real-time update (fora da transaction)
     await notifyCardCreated(boardId, result.card);
+
+    // Automation Trigger: CARD_CREATED
+    await AutomationEngine.trigger(boardId, "CARD_CREATED", {
+      cardId: result.card.id,
+      columnId: result.card.columnId,
+    });
 
     // TODO: Descomentar quando modelo Activity existir no banco
     // await logCardCreated(result.card.id, user.id);

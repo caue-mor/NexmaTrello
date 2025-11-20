@@ -5,6 +5,7 @@ import { cardUpdateSchema } from "@/lib/validators";
 import { assertBoardRole } from "@/lib/rbac";
 import { z } from "zod";
 import { notifyCardUpdated } from "@/lib/pusher";
+import { AutomationEngine } from "@/lib/automation-engine";
 
 export async function GET(
   req: Request,
@@ -119,7 +120,7 @@ export async function PUT(
     // Buscar card atual para verificar se clientId está mudando
     const currentCard = await prisma.card.findUnique({
       where: { id: cardId, boardId },
-      select: { clientId: true, checklists: { select: { title: true } } },
+      select: { clientId: true, columnId: true, checklists: { select: { title: true } } },
     });
 
     if (!currentCard) {
@@ -202,6 +203,15 @@ export async function PUT(
 
     // Disparar evento Pusher para atualização em tempo real
     await notifyCardUpdated(boardId, card);
+
+    // Automation Trigger: CARD_MOVED
+    if (data.columnId && currentCard.columnId && data.columnId !== currentCard.columnId) {
+      await AutomationEngine.trigger(boardId, "CARD_MOVED", {
+        cardId: card.id,
+        fromColumnId: currentCard.columnId,
+        toColumnId: data.columnId,
+      });
+    }
 
     return NextResponse.json({ card });
   } catch (err) {

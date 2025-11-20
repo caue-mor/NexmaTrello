@@ -88,15 +88,23 @@ export async function POST(req: Request) {
         },
       });
 
-      // Criar coluna "Finalizado" automaticamente
-      await tx.column.create({
-        data: {
-          id: crypto.randomUUID(),
-          boardId: newBoard.id,
-          title: "✅ Finalizado",
-          order: 0,
-        },
-      });
+      // Criar 4 colunas padrão automaticamente
+      const defaultColumns = [
+        { title: "📋 Inicial", order: 0, isFixed: true },
+        { title: "🔄 Em Progresso", order: 1, isFixed: false },
+        { title: "👀 Em Revisão", order: 2, isFixed: false },
+        { title: "✅ Finalizado", order: 3, isFixed: true },
+      ];
+
+      for (const column of defaultColumns) {
+        await tx.column.create({
+          data: {
+            id: crypto.randomUUID(),
+            boardId: newBoard.id,
+            ...column,
+          },
+        });
+      }
 
       return newBoard;
     });

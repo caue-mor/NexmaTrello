@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Activity {
-  id        String       @id
+  id        String       @id @default(cuid())
   boardId   String
   cardId    String?
   userId    String
@@ -61,6 +61,7 @@ model Board {
   labels            Label[]             @relation("LabelToBoard")
   notes             Note[]              @relation("NoteToBoard")
   tickets           Ticket[]            @relation("TicketToBoard")
+  automations       Automation[]
 }
 
 model BoardMember {
@@ -222,12 +223,13 @@ model Client {
 }
 
 model Column {
-  id      String @id
+  id      String  @id
   boardId String
   title   String
   order   Int
-  cards   Card[] @relation("ColumnToCard")
-  board   Board  @relation("BoardToColumn", fields: [boardId], references: [id], onDelete: Cascade)
+  isFixed Boolean @default(false)
+  cards   Card[]  @relation("ColumnToCard")
+  board   Board   @relation("BoardToColumn", fields: [boardId], references: [id], onDelete: Cascade)
 
   @@index([boardId])
 }
@@ -353,6 +355,7 @@ model User {
   Session                          Session[]
   achievements                     UserAchievement[]   @relation("AchievementToUser")
   stats                            UserStats?          @relation("StatsToUser")
+  notificationPreferences          NotificationPreferences?
 
   // Google Calendar Integration
   googleToken                      GoogleToken?
@@ -553,7 +556,25 @@ enum TicketStatus {
   CANCELLED
 }
 
+model Automation {
+  id            String   @id @default(cuid())
+  boardId       String
+  name          String
+  triggerType   String
+  triggerConfig Json
+  actionType    String
+  actionConfig  Json
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  board         Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
+
 enum ActivityType {
+  BOARD_CREATED
+  BOARD_UPDATE
   CARD_CREATED
   CARD_UPDATED
   CARD_MOVED
@@ -595,6 +616,35 @@ enum NoteScope {
 enum NotificationType {
   INVITE
   ALERT
+  MENTION
+  ASSIGNMENT
+  COMMENT
+  DUE_DATE
+  BOARD_UPDATE
+}
+
+model NotificationPreferences {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  
+  // Channels
+  emailEnabled      Boolean  @default(true)
+  pushEnabled       Boolean  @default(true)
+  soundEnabled      Boolean  @default(true)
+  
+  // Types
+  mentions          Boolean  @default(true)
+  assignments       Boolean  @default(true)
+  comments          Boolean  @default(true)
+  deadlines         Boolean  @default(true)
+  boardUpdates      Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
 }
 
 enum OnboardStatus {
@@ -624,4 +674,18 @@ model GoogleToken {
   expiryDate   BigInt?
   
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BoardTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String   @default("Geral")
+  columns     Json     // Array of column titles
+  cards       Json?    // Optional default cards structure
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
 }

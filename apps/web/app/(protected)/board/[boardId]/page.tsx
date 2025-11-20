@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CreateColumnDialog } from "@/components/boards/CreateColumnDialog";
 import { InviteMemberDialog } from "@/components/boards/InviteMemberDialog";
-import { DraggableBoard } from "@/components/boards/DraggableBoard";
+import { BoardWithRanking } from "@/components/boards/BoardWithRanking";
 import { DeleteBoardButton } from "@/components/boards/DeleteBoardButton";
+import { AutomationDialog } from "@/components/automation/AutomationDialog";
 import { TaskAlerts } from "@/components/alerts/TaskAlerts";
 import { groupCardsByStatus } from "@/lib/task-status";
 
@@ -79,11 +80,11 @@ async function getBoard(boardId: string, userId: string) {
     // Reordenar colunas: "Finalizado" sempre por último
     board.columns = board.columns.sort((a, b) => {
       const aIsFinal = a.title.toLowerCase().includes("finalizado") ||
-                       a.title.toLowerCase().includes("concluído") ||
-                       a.title.toLowerCase().includes("completo");
+        a.title.toLowerCase().includes("concluído") ||
+        a.title.toLowerCase().includes("completo");
       const bIsFinal = b.title.toLowerCase().includes("finalizado") ||
-                       b.title.toLowerCase().includes("concluído") ||
-                       b.title.toLowerCase().includes("completo");
+        b.title.toLowerCase().includes("concluído") ||
+        b.title.toLowerCase().includes("completo");
 
       if (aIsFinal && !bIsFinal) return 1;  // a vai para o final
       if (!aIsFinal && bIsFinal) return -1; // b vai para o final
@@ -152,6 +153,7 @@ export default async function BoardPage({
                 </Button>
               </Link>
             )}
+            <AutomationDialog boardId={board.id} />
             <InviteMemberDialog boardId={board.id} />
             <CreateColumnDialog boardId={board.id} />
             {isOwner && (
@@ -180,7 +182,11 @@ export default async function BoardPage({
               <CreateColumnDialog boardId={board.id} />
             </div>
           ) : (
-            <DraggableBoard boardId={board.id} initialColumns={board.columns} />
+            <BoardWithRanking
+              boardId={board.id}
+              userId={user.id}
+              initialColumns={board.columns}
+            />
           )}
         </div>
       </div>

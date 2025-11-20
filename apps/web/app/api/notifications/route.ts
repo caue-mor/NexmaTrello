@@ -2,53 +2,66 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { user } = await getSession();
-
     if (!user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const list = await prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 50,
+    const { searchParams } = new URL(req.url);
+    const unreadOnly = searchParams.get("unreadOnly") === "true";
+    const limit = parseInt(searchParams.get("limit") || "20");
+
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: user.id,
+        ...(unreadOnly ? { readAt: null } : {}),
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: limit,
+      include: {
+        card: {
+          select: {
+            id: true,
+            title: true,
+            column: {
+              select: {
+                boardId: true,
+                board: {
+                  select: {
+                    title: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
-    return NextResponse.json({ list });
-  } catch (err) {
-    console.error("Get notifications error:", err);
+    return NextResponse.json({ notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar notificações" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(req: Request) {
+export async function PATCH(req: Request) {
   try {
     const { user } = await getSession();
-
     if (!user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { notificationIds } = body;
+    const { notificationIds, markAllRead } = await req.json();
 
-    if (Array.isArray(notificationIds)) {
-      await prisma.notification.updateMany({
-        where: {
-          id: { in: notificationIds },
-          userId: user.id,
-        },
-        data: {
-          readAt: new Date(),
-        },
-      });
-    } else {
-      // Mark all as read
+    if (markAllRead) {
       await prisma.notification.updateMany({
         where: {
           userId: user.id,
@@ -58,13 +71,24 @@ export async function PUT(req: Request) {
           readAt: new Date(),
         },
       });
+    } else if (notificationIds && Array.isArray(notificationIds)) {
+      await prisma.notification.updateMany({
+        where: {
+          userId: user.id,
+          id: { in: notificationIds },
+          readAt: null,
+        },
+        data: {
+          readAt: new Date(),
+        },
+      });
     }
 
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("Update notifications error:", err);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error updating notifications:", error);
     return NextResponse.json(
-      { error: "Erro ao atualizar notificações" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
